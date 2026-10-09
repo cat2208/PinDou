@@ -1,0 +1,20 @@
+# 拼豆手工店后端 systemd 服务
+# 安装: sudo cp wx-server.service /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now wx-server
+[Unit]
+Description=WX PinDou Shop Backend (NestJS)
+After=network.target mysql.service redis-server.service
+
+[Service]
+Type=simple
+# 部署路径与 deploy.sh 保持一致；手动部署请按实际路径修改
+WorkingDirectory=/opt/wx-server
+ExecStart=/usr/bin/node /opt/wx-server/dist/main.js
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+Environment=PORT=3000
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

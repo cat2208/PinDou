@@ -1,0 +1,26 @@
+<!--pages/gallery/list/list.wxml 晒图墙-->
+<view class="page fade-in">
+  <view class="gal-head">
+    <text class="gal-title">大家的手工作品</text>
+    <text class="gal-post" bindtap="goPublish">+ 晒图</text>
+  </view>
+
+  <view class="gal-grid">
+    <view class="gal-item" wx:for="{{posts}}" wx:key="id">
+      <view class="gal-cover" style="background: {{item.color}}" bindtap="preview">
+        <text class="gal-char">{{item.cover}}</text>
+      </view>
+      <view class="gal-info">
+        <text class="gal-desc">{{item.title}}</text>
+        <view class="gal-meta">
+          <view class="gal-user">
+            <text class="gal-avatar">{{item.avatar}}</text>
+            <text class="sub">{{item.user}}</text>
+          </view>
+          <text class="gal-like" bindtap="like" data-id="{{item.id}}">♥ {{item.likes}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view class="safe-bottom" />
+</view>

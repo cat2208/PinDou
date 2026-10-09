@@ -1,0 +1,12 @@
+<!--pages/member/points-log/points-log.wxml 积分明细-->
+<view class="page fade-in">
+  <view class="card log-item" wx:for="{{logs}}" wx:key="id">
+    <view class="log-main">
+      <text class="log-desc">{{item.desc}}</text>
+      <text class="sub">{{item.time}}</text>
+    </view>
+    <text class="log-change {{item.type === 'out' ? 'out' : ''}}">{{item.change}}</text>
+  </view>
+  <view class="empty" wx:if="{{loading === false && !logs.length}}">暂无积分记录</view>
+  <view class="safe-bottom" />
+</view>

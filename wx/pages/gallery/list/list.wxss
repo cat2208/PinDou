@@ -1,0 +1,36 @@
+/* pages/gallery/list/list.wxss */
+.gal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx; }
+.gal-title { font-size: 32rpx; font-weight: 700; }
+.gal-post { color: var(--brand); font-size: 28rpx; }
+
+.gal-grid { display: flex; flex-wrap: wrap; justify-content: space-between; }
+.gal-item {
+  width: 48.5%;
+  background: #FFF;
+  border-radius: 20rpx;
+  overflow: hidden;
+  margin-bottom: 20rpx;
+}
+.gal-cover { height: 240rpx; display: flex; align-items: center; justify-content: center; }
+.gal-char { font-size: 90rpx; font-weight: 800; color: rgba(255, 255, 255, 0.95); }
+.gal-info { padding: 16rpx 20rpx 20rpx; }
+.gal-desc {
+  font-size: 28rpx;
+  font-weight: 600;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gal-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 12rpx; }
+.gal-user { display: flex; align-items: center; }
+.gal-avatar {
+  width: 40rpx; height: 40rpx;
+  border-radius: 999rpx;
+  background: var(--brand);
+  color: #FFF;
+  font-size: 22rpx;
+  display: flex; align-items: center; justify-content: center;
+  margin-right: 10rpx;
+}
+.gal-like { color: var(--danger); font-size: 24rpx; }

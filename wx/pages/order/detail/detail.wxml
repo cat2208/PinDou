@@ -1,0 +1,79 @@
+<!--pages/order/detail/detail.wxml 订单详情-->
+<view class="page fade-in" wx:if="{{order}}">
+  <!-- 状态条 -->
+  <view class="card status-card">
+    <view class="status-top">
+      <text class="status-title">{{order.statusText}}</text>
+      <text class="type-tag {{order.typeTextClass}}">{{order.typeText}}</text>
+    </view>
+    <text class="sub">{{order.timeline && order.timeline.length ? order.timeline[0].text : '订单已提交'}}</text>
+  </view>
+
+  <!-- 收货信息（定制订单） -->
+  <view class="card" wx:if="{{order.address}}">
+    <view class="addr-row">
+      <text class="addr-name">{{order.contact}}　{{order.phone}}</text>
+      <text class="sub">{{order.address}}</text>
+    </view>
+  </view>
+
+  <!-- 商品 -->
+  <view class="card">
+    <view class="o-item">
+      <image wx:if="{{order.image}}" class="o-img" src="{{order.image}}" mode="aspectFill" />
+      <view wx:else class="o-img o-img-ph order-{{order.type}}">{{order.type === 'store' ? '🧩' : order.type === 'custom' ? '🎨' : '🛍️'}}</view>
+      <view class="o-info">
+        <text class="o-title">{{order.title}}</text>
+        <text wx:if="{{order.qty}}" class="sub">共 {{order.qty}} 件</text>
+      </view>
+      <text class="price">¥{{order.totalPrice}}</text>
+    </view>
+
+    <!-- 到店DIY：本桌清单 -->
+    <view class="divider" wx:if="{{order.items && order.items.length}}" />
+    <view class="line-item" wx:for="{{order.items}}" wx:key="index" wx:if="{{order.items && order.items.length}}">
+      <text class="line-name">{{item.name}}<text wx:if="{{item.qty > 1}}" class="sub">　×{{item.qty}}</text></text>
+      <text class="line-amt">{{item.amountText || '¥' + Number(item.amount || 0).toFixed(2)}}</text>
+    </view>
+
+    <view class="divider" />
+    <view class="row-between" wx:if="{{order.remark}}">
+      <text class="sub">订单备注</text>
+      <text>{{order.remark}}</text>
+    </view>
+    <view class="row-between">
+      <text class="sub">订单编号</text>
+      <text class="copy" bindtap="copyNo" data-no="{{order.orderNo || order.id}}">{{order.orderNo || order.id}}</text>
+    </view>
+    <view class="row-between">
+      <text class="sub">下单时间</text>
+      <text>{{order.createdAt}}</text>
+    </view>
+    <view class="row-between" wx:if="{{order.paidAt}}">
+      <text class="sub">支付时间</text>
+      <text>{{order.paidAt}}</text>
+    </view>
+    <view class="row-between" wx:if="{{order.express && order.express.no}}">
+      <text class="sub">物流信息</text>
+      <text>{{order.express.company}} {{order.express.no}}</text>
+    </view>
+  </view>
+
+  <!-- 订单进度 -->
+  <view class="card" wx:if="{{order.timeline && order.timeline.length}}">
+    <view class="section-t">订单进度</view>
+    <view class="tl-item" wx:for="{{order.timeline}}" wx:key="time">
+      <view class="tl-dot"></view>
+      <view class="tl-body">
+        <text class="tl-text">{{item.text}}</text>
+        <text class="sub">{{item.time}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作（仅定制订单可确认收货） -->
+  <view class="action-bar" wx:if="{{order.type === 'custom' && order.status === 'shipping'}}">
+    <button class="btn-primary" bindtap="onReceived">确认收货</button>
+  </view>
+  <view class="action-bar-placeholder" wx:if="{{order.type === 'custom' && order.status === 'shipping'}}" />
+</view>

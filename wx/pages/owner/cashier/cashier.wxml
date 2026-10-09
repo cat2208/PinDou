@@ -1,0 +1,153 @@
+<!--pages/owner/cashier/cashier.wxml 收银台（老板/店员端）-->
+<view class="page fade-in">
+
+  <!-- 未登录：店员账号登录 -->
+  <block wx:if="{{!logged}}">
+    <view class="card login-card">
+      <view class="login-title">收银台 · 店员登录</view>
+      <view class="login-sub">使用店内店员账号登录后即可收款与查看统计</view>
+      <view class="form-item">
+        <text class="form-label">账号</text>
+        <input class="input" placeholder="请输入用户名" value="{{username}}" bindinput="onUsername" />
+      </view>
+      <view class="form-item">
+        <text class="form-label">密码</text>
+        <input class="input" password placeholder="请输入密码" value="{{password}}" bindinput="onPassword" />
+      </view>
+      <button class="btn-primary login-btn" bindtap="doLogin" loading="{{logging}}">登录</button>
+      <text class="login-hint">演示账号：owner / demo123456</text>
+    </view>
+  </block>
+
+  <!-- 已登录：收银主界面 -->
+  <block wx:else>
+    <view class="cashier-head">
+      <view>
+        <text class="staff-name">{{staffInfo.realName || staffInfo.username}}</text>
+        <text class="staff-role">{{roleText}}</text>
+      </view>
+      <view class="head-actions">
+        <text class="staff-logout" bindtap="logout">退出</text>
+      </view>
+    </view>
+
+    <!-- 状态 Tab -->
+    <view class="tabs card">
+      <view class="tab {{tab==='pending'?'tab-active':''}}" data-tab="pending" bindtap="switchTab">待收款</view>
+      <view class="tab {{tab==='timing'?'tab-active':''}}" data-tab="timing" bindtap="switchTab">计时中</view>
+      <view class="tab {{tab==='income'?'tab-active':''}}" data-tab="income" bindtap="switchTab">收入统计</view>
+    </view>
+
+    <!-- 待收款 / 计时中：订单列表 -->
+    <block wx:if="{{tab==='pending' || tab==='timing'}}">
+      <view class="order-head">
+        <text class="order-head-text">{{tab==='pending' ? '待收款订单' : '正在计时中的桌台'}}（{{orders.length}}）</text>
+        <text class="refresh-btn" bindtap="loadOrders">刷新</text>
+      </view>
+      <view wx:if="{{orders.length===0}}" class="empty">暂无订单</view>
+      <view wx:for="{{orders}}" wx:key="orderId" class="card order-card">
+        <view class="order-top">
+          <view class="seat-badge">{{item.seatNo || '-'}} 号桌</view>
+          <text class="order-no">#{{item.orderNo}}</text>
+        </view>
+        <view class="order-line"><text class="line-name">开始时间</text><text>{{item.startAt}}</text></view>
+        <view class="order-line" wx:if="{{item.endAt}}"><text class="line-name">结束时间</text><text>{{item.endAt}}</text></view>
+        <view class="order-line"><text class="line-name">用时</text><text>{{item.elapsedMinutes}} 分钟<text wx:if="{{item.overtimeMinutes>0}}" class="overtime">（超时 {{item.overtimeMinutes}} 分钟）</text></text></view>
+        <view class="order-line"><text class="line-name">计时费</text><text>¥{{item.timingFee}}</text></view>
+        <view class="order-line"><text class="line-name">配件费</text><text>¥{{item.accessoryFee}}</text></view>
+        <view class="order-line" wx:if="{{item.couponDeduction>0}}"><text class="line-name">券抵扣</text><text class="deduct">-¥{{item.couponDeduction}}</text></view>
+        <view class="order-total"><text>合计</text><text class="price">{{item.totalFeeText}}</text></view>
+        <view class="order-actions" wx:if="{{tab==='pending'}}">
+          <button class="btn-outline mini-btn" data-id="{{item.orderId}}" catchtap="openPrice">改价</button>
+          <button class="btn-primary mini-btn" data-id="{{item.orderId}}" catchtap="openPay">完成收款</button>
+        </view>
+      </view>
+    </block>
+
+    <!-- 收入统计 -->
+    <block wx:if="{{tab==='income'}}">
+      <view class="stat-grid">
+        <view class="card stat-card">
+          <text class="stat-title">今日</text>
+          <text class="stat-total">¥{{income.today.total}}</text>
+          <text class="stat-count">{{income.today.orderCount}} 笔</text>
+          <view class="stat-line"><text>计时</text><text>¥{{income.today.timing}}</text></view>
+          <view class="stat-line"><text>商品</text><text>¥{{income.today.goods}}</text></view>
+          <view class="stat-line"><text>定制</text><text>¥{{income.today.custom}}</text></view>
+        </view>
+        <view class="card stat-card">
+          <text class="stat-title">本月</text>
+          <text class="stat-total">¥{{income.month.total}}</text>
+          <text class="stat-count">{{income.month.orderCount}} 笔</text>
+          <view class="stat-line"><text>计时</text><text>¥{{income.month.timing}}</text></view>
+          <view class="stat-line"><text>商品</text><text>¥{{income.month.goods}}</text></view>
+          <view class="stat-line"><text>定制</text><text>¥{{income.month.custom}}</text></view>
+        </view>
+      </view>
+      <view class="card stat-card full">
+        <text class="stat-title">累计</text>
+        <text class="stat-total">¥{{income.total.total}}</text>
+        <text class="stat-count">{{income.total.orderCount}} 笔</text>
+        <view class="stat-line"><text>计时</text><text>¥{{income.total.timing}}</text></view>
+        <view class="stat-line"><text>商品</text><text>¥{{income.total.goods}}</text></view>
+        <view class="stat-line"><text>定制</text><text>¥{{income.total.custom}}</text></view>
+      </view>
+      <view class="card trend-card">
+        <text class="card-title">近 7 日收入趋势</text>
+        <view wx:for="{{trend}}" wx:key="date" class="trend-row">
+          <text class="trend-date">{{item.date}}</text>
+          <view class="trend-bar-wrap"><view class="trend-bar" style="width: {{item.pct}}%"></view></view>
+          <text class="trend-amount">¥{{item.amount}}</text>
+        </view>
+      </view>
+    </block>
+  </block>
+
+  <!-- 收款弹层 -->
+  <view class="mask" wx:if="{{showPay}}" bindtap="closePay">
+    <view class="sheet" catchtap="noop">
+      <view class="sheet-title">完成收款</view>
+      <view class="pay-fee">应收 <text class="price">¥{{payOrder.totalFee}}</text></view>
+
+      <view class="pay-block-title">优惠券抵扣</view>
+      <scroll-view scroll-y class="coupon-scroll" wx:if="{{coupons.length}}">
+        <view wx:for="{{coupons}}" wx:key="id"
+          class="coupon-item {{payCouponId===item.id?'coupon-active':''}}"
+          data-id="{{item.id}}" bindtap="selectCoupon">
+          <text class="coupon-code">{{item.code}}</text>
+          <text class="coupon-value">{{item.typeText}} · {{item.value}}</text>
+        </view>
+      </scroll-view>
+      <view wx:else class="no-coupon">暂无可用优惠券</view>
+
+      <view class="pay-block-title">手动优惠金额（与券二选一）</view>
+      <input class="coupon-input" type="digit" placeholder="输入优惠金额，0 则无" value="{{discountAmount}}" bindinput="onDiscount" />
+
+      <view class="pay-block-title">支付方式</view>
+      <view class="pay-methods">
+        <view class="pay-method {{payMethod==='CASH'?'pay-method-active':''}}" data-m="CASH" bindtap="selectMethod">现金</view>
+        <view class="pay-method {{payMethod==='WECHAT'?'pay-method-active':''}}" data-m="WECHAT" bindtap="selectMethod">微信</view>
+      </view>
+
+      <view class="sheet-actions">
+        <button class="btn-outline" bindtap="closePay">取消</button>
+        <button class="btn-primary" bindtap="confirmPay" loading="{{paying}}">确认收款</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 改价弹层 -->
+  <view class="mask" wx:if="{{showPrice}}" bindtap="closePrice">
+    <view class="sheet" catchtap="noop">
+      <view class="sheet-title">修改订单价格</view>
+      <view class="pay-fee">当前 <text class="price">¥{{priceOrder.totalFee}}</text></view>
+      <input class="coupon-input" type="digit" placeholder="输入新订单金额" value="{{priceInput}}" bindinput="onPriceInput" />
+      <view class="sheet-actions">
+        <button class="btn-outline" bindtap="closePrice">取消</button>
+        <button class="btn-primary" bindtap="confirmPrice" loading="{{pricing}}">保存</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="safe-bottom" />
+</view>

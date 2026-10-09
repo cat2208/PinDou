@@ -1,0 +1,52 @@
+/* pages/mall/detail/detail.wxss */
+.gallery { height: 480rpx; border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 24rpx; }
+.gallery-img { width: 100%; height: 100%; background: #FFF0E4; }
+
+.p-head { display: flex; justify-content: space-between; align-items: center; }
+.p-name { display: block; font-size: 34rpx; font-weight: 700; margin-top: 10rpx; }
+.p-cat { display: block; margin-top: 6rpx; }
+
+.section-t { font-size: 30rpx; font-weight: 700; margin-bottom: 16rpx; }
+.spec-row { display: flex; align-items: center; padding: 10rpx 0; }
+.spec-opts { flex: 1; display: flex; flex-wrap: wrap; }
+.spec-chip {
+  padding: 8rpx 24rpx;
+  margin: 0 12rpx 12rpx 0;
+  background: #FAF5EC;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  color: var(--text-main);
+}
+.spec-chip.active { background: var(--brand); color: #fff; }
+
+.qty { display: flex; align-items: center; margin-left: auto; }
+.qty-btn {
+  width: 60rpx; height: 60rpx;
+  border: 1rpx solid #E0CDB2; border-radius: 12rpx;
+  text-align: center; line-height: 58rpx;
+  font-size: 32rpx; color: var(--brand); background: #fff;
+}
+.qty-num { width: 96rpx; text-align: center; font-size: 32rpx; font-weight: 700; }
+
+.p-desc { font-size: 28rpx; color: var(--text-main); line-height: 1.8; }
+
+.buy-bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: #fff;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  display: flex; align-items: center;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+  z-index: 10;
+}
+.buy-cart { position: relative; display: flex; flex-direction: column; align-items: center; margin-right: 20rpx; }
+.cart-icon { font-size: 48rpx; }
+.cart-badge {
+  position: absolute; top: -8rpx; right: -12rpx;
+  background: var(--danger); color: #fff;
+  min-width: 32rpx; height: 32rpx; line-height: 32rpx;
+  border-radius: 999rpx; font-size: 20rpx; text-align: center;
+  padding: 0 8rpx;
+}
+.add-btn { margin-right: 16rpx; flex: 1; }
+.buy-bar .btn-primary { flex: 1; }
+.buy-bar-placeholder { height: 140rpx; }

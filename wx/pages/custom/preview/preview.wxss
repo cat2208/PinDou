@@ -1,0 +1,107 @@
+/* pages/custom/preview/preview.wxss */
+.step {
+  font-size: 24rpx;
+  color: var(--brand);
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+.preview-img {
+  width: 100%;
+  height: 440rpx;
+  border-radius: var(--radius);
+  background: #FFF0E4;
+}
+.center { text-align: center; margin-top: 12rpx; }
+
+.qty { display: flex; align-items: center; }
+.qty-btn {
+  width: 60rpx; height: 60rpx;
+  border: 1rpx solid #E0CDB2;
+  border-radius: 12rpx;
+  text-align: center; line-height: 58rpx;
+  font-size: 32rpx; color: var(--brand); background: #fff;
+}
+.qty-num { width: 96rpx; text-align: center; font-size: 32rpx; font-weight: 700; }
+.remark-text { color: var(--text-main); }
+
+.quote-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.quote-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 12rpx 0;
+}
+.quote-row.total {
+  border-top: 1rpx dashed #EAD9C2;
+  margin-top: 8rpx;
+  padding-top: 20rpx;
+  font-size: 30rpx; font-weight: 600;
+}
+.quote-tip { font-size: 22rpx; color: var(--text-light); margin-top: 8rpx; }
+.next { margin-top: 8rpx; }
+
+/* 拼豆图纸统计 */
+.pattern-stats {
+  display: flex;
+  flex-wrap: wrap;
+  background: #FFF9F1;
+  border-radius: var(--radius);
+  padding: 20rpx 8rpx;
+  margin-bottom: 20rpx;
+}
+.stat {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8rpx 0;
+}
+.stat-num { font-size: 28rpx; font-weight: 700; color: var(--brand); }
+.stat-label { font-size: 22rpx; color: var(--text-light); margin-top: 6rpx; }
+.pattern-img {
+  width: 100%;
+  border-radius: var(--radius);
+  background: #FAF5EC;
+  margin-top: 16rpx;
+}
+.save-pattern-btn {
+  margin-top: 20rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+.export-canvas {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 1200px;
+  height: 1200px;
+}
+
+/* 配豆清单 */
+.toggle-link { font-size: 24rpx; color: var(--brand); }
+.color-list {
+  margin-top: 8rpx;
+  display: flex;
+  flex-direction: column;
+}
+.color-item {
+  display: flex;
+  align-items: center;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #F3E8D8;
+}
+.color-item:last-child { border-bottom: none; }
+.color-chip {
+  width: 44rpx; height: 44rpx;
+  border-radius: 10rpx;
+  border: 1rpx solid rgba(0,0,0,0.08);
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+.color-code { font-size: 26rpx; font-weight: 600; width: 180rpx; }
+.color-count { font-size: 26rpx; color: var(--text-main); flex: 1; }
+.color-packs { font-size: 24rpx; color: var(--text-light); }

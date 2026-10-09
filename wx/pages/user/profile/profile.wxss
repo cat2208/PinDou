@@ -1,0 +1,36 @@
+/* pages/user/profile/profile.wxss */
+.me-card {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--brand), #F2A15B);
+  border-radius: 24rpx;
+  padding: 40rpx 32rpx;
+  color: #FFF;
+  margin-bottom: 28rpx;
+}
+.me-avatar {
+  width: 110rpx; height: 110rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 48rpx; font-weight: 700;
+}
+.me-info { flex: 1; margin-left: 24rpx; display: flex; flex-direction: column; }
+.me-name { font-size: 36rpx; font-weight: 800; }
+.me-sub { font-size: 24rpx; opacity: 0.9; margin-top: 8rpx; }
+.me-edit {
+  padding: 10rpx 28rpx;
+  border: 2rpx solid rgba(255, 255, 255, 0.6);
+  border-radius: 999rpx;
+  font-size: 24rpx;
+}
+
+.menu { padding: 8rpx 28rpx; margin-bottom: 28rpx; }
+.menu-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 30rpx 0;
+  font-size: 30rpx;
+  border-bottom: 2rpx solid #F6F0E6;
+}
+.menu-item:last-child { border-bottom: none; }
+.arrow { color: #C9BFAE; font-size: 36rpx; }

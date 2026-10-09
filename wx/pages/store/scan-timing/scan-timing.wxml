@@ -1,0 +1,140 @@
+<!--pages/store/scan-timing/scan-timing.wxml 座位扫码开台·计时·配件-->
+<view class="page fade-in">
+
+  <!-- ========== 选座 + 选套餐 ========== -->
+  <block wx:if="{{step === 'pick'}}">
+    <view class="card">
+      <view class="step-head">
+        <text class="step-no">1</text>
+        <text class="title">选择座位</text>
+      </view>
+      <view class="seat-row">
+        <button class="btn-primary seat-scan" bindtap="scanSeat">扫桌位二维码</button>
+        <input class="input seat-input" placeholder="或输入座位号，如 A03" value="{{seatInput}}" bindinput="onSeatInput" />
+      </view>
+      <view wx:if="{{seats.length}}" class="seat-chips">
+        <view
+          wx:for="{{seats}}"
+          wx:key="id"
+          class="seat-chip {{seatInput === item.seatNo ? 'active' : ''}}"
+          data-seatno="{{item.seatNo}}"
+          bindtap="quickFillSeat"
+        >{{item.seatNo}}</view>
+      </view>
+      <view wx:if="{{seatDisplay && !seatInput}}" class="seat-scan-ok">✓ {{seatDisplay}}</view>
+    </view>
+
+    <view class="card">
+      <view class="step-head">
+        <text class="step-no">2</text>
+        <text class="title">选择时间套餐</text>
+        <text class="pkg-tip">超时按小时单价补差价</text>
+      </view>
+      <view wx:if="{{!packages.length}}" class="empty">套餐加载中…</view>
+      <view
+        wx:for="{{packages}}"
+        wx:key="id"
+        class="pkg-item {{packageIndex === index ? 'active' : ''}}"
+        data-index="{{index}}"
+        bindtap="onPackageTap"
+      >
+        <view class="pkg-main">
+          <text class="pkg-name">{{item.name}}</text>
+          <text wx:if="{{item.description}}" class="pkg-desc">{{item.description}}</text>
+        </view>
+        <view class="pkg-right">
+          <view class="price">{{item.priceText}}</view>
+          <view wx:if="{{item.durationMinutes}}" class="pkg-dur">含 {{item.durationMinutes}} 分钟</view>
+          <view wx:elif="{{item.hourlyUnitPrice}}" class="pkg-dur">{{item.hourlyUnitPrice}} 元/小时</view>
+        </view>
+      </view>
+    </view>
+
+    <button class="btn-primary btn-start" loading="{{loading}}" bindtap="start">确认开台</button>
+    <text class="sub start-tip">开始计时后可在本页加购配件，结束后到前台统一结账</text>
+  </block>
+
+  <!-- ========== 计时中 ========== -->
+  <block wx:elif="{{step === 'timing'}}">
+    <view class="card timing-card">
+      <view class="timing-head">
+        <view class="seat-tag">{{session.seatNo || seatDisplay}}</view>
+        <text class="badge {{remainState === 'overtime' ? 'badge-danger' : (remainState === 'warn' ? 'badge-warning' : 'badge-success')}}">
+          {{session.packageName || '计时体验'}}
+        </text>
+      </view>
+      <view class="timer">{{elapsed}}</view>
+      <view class="timer-label">已计时</view>
+      <view wx:if="{{remainText}}" class="remain {{remainState === 'overtime' ? 'danger' : 'sub'}}">{{remainText}}</view>
+      <view class="fee-row">
+        <text class="sub">预估计时费</text>
+        <text class="price price-fee">{{estTimingFee}}</text>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="card-head">
+        <text class="title">本桌清单</text>
+        <text class="sub">配件费 {{session.accessoryFeeText || '¥0.00'}}</text>
+      </view>
+      <view wx:if="{{!session.items.length}}" class="empty-mini">暂无消费项目</view>
+      <view wx:for="{{session.items}}" wx:key="id" class="bill-row">
+        <text class="bill-name">{{item.name}}{{item.itemType === 'ACCESSORY' ? ' ×' + item.quantity : ''}}</text>
+        <text class="bill-amt">{{item.amountText}}</text>
+      </view>
+    </view>
+
+    <view class="card">
+      <view class="card-head" bindtap="toggleAccessoryPanel">
+        <text class="title">加购配件</text>
+        <view class="more">{{showAccessory ? '收起' : '添加'}} ▾</view>
+      </view>
+      <block wx:if="{{showAccessory}}">
+        <view wx:if="{{!accessories.length}}" class="empty-mini">没有可加购的配件</view>
+        <view wx:for="{{accessories}}" wx:key="id" class="acc-row">
+          <view class="acc-info">
+            <text class="acc-name">{{item.name}}</text>
+            <text class="acc-price">{{item.priceText}}<text wx:if="{{item.stock < 5}}" class="acc-stock"> 仅剩{{item.stock}}</text></text>
+          </view>
+          <view class="qty-stepper">
+            <view class="qty-btn" data-id="{{item.id}}" data-type="dec" bindtap="qtyChange">−</view>
+            <text class="qty-num">{{accessoryQty[item.id] || 1}}</text>
+            <view class="qty-btn" data-id="{{item.id}}" data-type="inc" bindtap="qtyChange">+</view>
+            <view class="qty-add" data-id="{{item.id}}" bindtap="addAccessory">加入</view>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <button class="btn-primary btn-start btn-end" bindtap="endTiming">结束计时并结账</button>
+    <text class="sub start-tip">结束计时后请到前台完成付款</text>
+  </block>
+
+  <!-- ========== 已结束 ========== -->
+  <block wx:else>
+    <view class="card bill-card">
+      <view class="bill-head">
+        <text class="seat-tag">{{session.seatNo}}</text>
+        <text class="badge badge-warning">待收款</text>
+      </view>
+      <view class="bill-line">
+        <text class="bill-name">计时费（{{session.elapsedMinutes}} 分钟<span wx:if="{{session.overtimeMinutes}}">，超时 {{session.overtimeMinutes}} 分钟</span>）</text>
+        <text class="bill-amt">{{session.timingFeeText}}</text>
+      </view>
+      <view wx:for="{{session.items}}" wx:key="id" wx:if="{{item.itemType === 'ACCESSORY'}}" class="bill-line">
+        <text class="bill-name">{{item.name}} ×{{item.quantity}}</text>
+        <text class="bill-amt">{{item.amountText}}</text>
+      </view>
+      <view class="bill-total">
+        <text>合计</text>
+        <text class="price">{{session.totalFeeText}}</text>
+      </view>
+    </view>
+    <view class="card">
+      <view class="done-tip">✓ 计时已结束，账单已生成</view>
+      <view class="sub done-sub">请携带本页到前台完成付款，如需改价可向前台说明</view>
+    </view>
+    <button class="btn-primary btn-start" bindtap="restart">再来一桌</button>
+  </block>
+</view>
+<view class="safe-bottom" />

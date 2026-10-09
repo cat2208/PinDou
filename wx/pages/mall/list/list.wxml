@@ -1,0 +1,24 @@
+<!--pages/mall/list/list.wxml 成品商城-列表-->
+<view class="page fade-in">
+  <view class="cat-chip-row">
+    <text wx:for="{{categories}}" wx:key="*this"
+      class="cat-chip {{activeCat === index ? 'active' : ''}}"
+      bindtap="onCategoryTap" data-index="{{index}}">{{item}}</text>
+  </view>
+
+  <view class="grid-2 product-grid" wx:if="{{products.length}}">
+    <view class="card p-card" wx:for="{{products}}" wx:key="id"
+      bindtap="goDetail" data-id="{{item.id}}">
+      <image class="p-img" src="{{item.coverImage}}" mode="aspectFill" />
+      <view class="p-info">
+        <text class="p-name">{{item.name}}</text>
+        <view class="p-foot">
+          <text class="price"><text class="price-symbol">¥</text><text class="price-int">{{item.price}}</text></text>
+          <text class="sub p-sales">已售{{item.sales || 0}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view wx:else class="empty">暂无商品，敬请期待</view>
+  <view class="safe-bottom" />
+</view>

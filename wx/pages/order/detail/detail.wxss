@@ -1,0 +1,58 @@
+/* pages/order/detail/detail.wxss */
+.status-card {
+  background: linear-gradient(135deg, #FF9A5A, #E86A33);
+  border-radius: var(--radius-lg);
+}
+.status-title { color: #fff; font-size: 36rpx; font-weight: 700; display: block; }
+.status-card .sub { color: rgba(255, 255, 255, 0.85); }
+.status-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6rpx; }
+.type-tag { font-size: 20rpx; padding: 2rpx 12rpx; border-radius: 6rpx; font-weight: 600; background: rgba(255,255,255,0.9); }
+.type-custom { background: #FFF3E0; color: #E65100; }
+.type-store { background: #E8F5E9; color: #2E7D32; }
+.type-mall { background: #E3F2FD; color: #1565C0; }
+
+.addr-row { display: flex; flex-direction: column; }
+.addr-name { font-size: 30rpx; font-weight: 600; margin-bottom: 6rpx; }
+
+.o-item { display: flex; align-items: center; }
+.o-img { width: 140rpx; height: 140rpx; border-radius: var(--radius); background: #FFF0E4; margin-right: 20rpx; }
+.o-img-ph {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 56rpx; background: #FFF7EC; border: 1rpx dashed #F0E4D2;
+}
+.order-store { background: #F0FFF4; border-color: #DCF4E3; }
+.o-info { flex: 1; display: flex; flex-direction: column; }
+.o-title { font-size: 30rpx; font-weight: 600; }
+
+.line-item { display: flex; justify-content: space-between; padding: 10rpx 0; font-size: 28rpx; }
+.line-name { flex: 1; margin-right: 16rpx; }
+.line-amt { font-weight: 600; }
+
+.row-between { display: flex; justify-content: space-between; padding: 12rpx 0; font-size: 28rpx; }
+.copy { color: var(--text-main); }
+.link { color: var(--brand); }
+
+.section-t { font-size: 30rpx; font-weight: 700; margin-bottom: 16rpx; }
+.tl-item { display: flex; padding: 12rpx 0; position: relative; }
+.tl-dot {
+  width: 16rpx; height: 16rpx;
+  border-radius: 999rpx;
+  background: var(--brand);
+  margin: 12rpx 20rpx 0 0;
+  flex-shrink: 0;
+}
+.tl-body { display: flex; flex-direction: column; }
+.tl-text { font-size: 28rpx; }
+
+.action-bar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 20rpx;
+  background: #fff;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  position: fixed; left: 0; right: 0; bottom: 0;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+  z-index: 10;
+}
+.action-bar-placeholder { height: 140rpx; }
+.action-bar .btn-outline, .action-bar .btn-primary { padding: 14rpx 40rpx; font-size: 28rpx; }

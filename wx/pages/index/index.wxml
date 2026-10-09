@@ -1,0 +1,56 @@
+<!--pages/index/index.wxml 拼豆手工店首页-->
+<view class="page fade-in">
+  <swiper wx:if="{{banners.length}}" class="banner" indicator-dots autoplay circular
+    indicator-active-color="#E86A33" interval="4000">
+    <!-- 轮播 Banner -->
+    <swiper-item wx:for="{{banners}}" wx:key="id">
+      <image class="banner-img" src="{{item.imageUrl}}" mode="aspectFill"
+        binderror="onBannerError" data-index="{{index}}" />
+    </swiper-item>
+  </swiper>
+
+  <view wx:else class="brand-hero">
+    <!-- 品牌头图（无 Banner 数据时） -->
+    <text class="brand-title">🧩 拼豆手工店</text>
+    <text class="brand-slogan">拼出你的热爱 · 一豆一世界</text>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="grid-2 cat-grid">
+    <view class="cat-item" wx:for="{{categories}}" wx:key="id"
+      bindtap="goCategory" data-url="{{item.url}}" data-tab="{{item.tab}}">
+      <text class="cat-icon">{{item.icon}}</text>
+      <text class="cat-name">{{item.name}}</text>
+    </view>
+  </view>
+
+  <!-- 门店信息 -->
+  <view class="card store-card" bindtap="goStore">
+    <view class="store-left">
+      <text class="title">📍 {{store ? store.name : '拼豆手工店'}}</text>
+      <text class="sub">{{store ? store.address : '欢迎到店体验 DIY 拼豆乐趣'}}</text>
+    </view>
+    <text class="store-arrow">›</text>
+  </view>
+
+  <!-- 热销成品 -->
+  <view class="section-head">
+    <text class="title">🔥 热销成品</text>
+    <text class="sub" bindtap="goMall">更多 ›</text>
+  </view>
+  <view class="grid-2">
+    <view class="card product-card" wx:for="{{hotProducts}}" wx:key="id"
+      bindtap="goProduct" data-id="{{item.id}}">
+      <image class="product-img" src="{{item.coverImage}}" mode="aspectFill"
+        binderror="onProductImgError" data-index="{{index}}" />
+      <text class="product-name">{{item.name}}</text>
+      <view class="product-foot">
+        <text class="price"><text class="price-symbol">¥</text>{{item.priceText || item.price}}</text>
+        <text class="btn-outline mini">去看看</text>
+      </view>
+    </view>
+    <view wx:if="{{!hotProducts.length}}" class="empty">暂无热销商品，敬请期待</view>
+  </view>
+
+  <view class="safe-bottom" />
+</view>

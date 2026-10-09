@@ -1,0 +1,114 @@
+/* pages/store/scan-timing/scan-timing.wxss 座位扫码开台 */
+
+/* ---------- 步骤头 ---------- */
+.step-head { display: flex; align-items: center; margin-bottom: 20rpx; }
+.step-no {
+  width: 40rpx; height: 40rpx; line-height: 40rpx; text-align: center;
+  background: var(--brand); color: #fff; border-radius: 50%;
+  font-size: 24rpx; font-weight: 700; margin-right: 14rpx;
+}
+.pkg-tip { margin-left: auto; font-size: 22rpx; color: var(--text-light); }
+
+/* ---------- 座位 ---------- */
+.seat-row { display: flex; gap: 16rpx; margin-bottom: 16rpx; }
+.seat-scan { flex: 0 0 auto; font-size: 26rpx; padding: 16rpx 28rpx; }
+.seat-input {
+  flex: 1; border: 2rpx solid #F0E4D2; border-radius: 999rpx;
+  padding: 12rpx 24rpx; font-size: 26rpx; background: #FFFBF4;
+}
+.seat-chips { display: flex; flex-wrap: wrap; gap: 14rpx; }
+.seat-chip {
+  padding: 8rpx 24rpx; border-radius: 999rpx; font-size: 24rpx;
+  border: 2rpx solid #F0E4D2; color: var(--text-sub); background: #fff;
+}
+.seat-chip.active { background: var(--brand); color: #fff; border-color: var(--brand); }
+.seat-scan-ok { margin-top: 14rpx; font-size: 24rpx; color: var(--success); }
+
+/* ---------- 套餐 ---------- */
+.pkg-item {
+  display: flex; justify-content: space-between; align-items: center;
+  border: 2rpx solid #F0E4D2; border-radius: var(--radius);
+  padding: 20rpx 24rpx; margin-bottom: 16rpx; background: #fff;
+}
+.pkg-item:last-child { margin-bottom: 0; }
+.pkg-item.active { border-color: var(--brand); background: var(--brand-light); }
+.pkg-main { display: flex; flex-direction: column; flex: 1; margin-right: 16rpx; }
+.pkg-name { font-size: 30rpx; font-weight: 600; }
+.pkg-desc { font-size: 22rpx; color: var(--text-sub); margin-top: 4rpx; }
+.pkg-right { text-align: right; }
+.pkg-dur { font-size: 22rpx; color: var(--text-sub); margin-top: 4rpx; }
+
+/* ---------- 开台按钮 ---------- */
+.btn-start { width: 100%; margin-top: 8rpx; }
+.start-tip { display: block; text-align: center; margin-top: 16rpx; font-size: 22rpx; }
+
+/* ---------- 计时中 ---------- */
+.timing-card { text-align: center; padding: 36rpx 24rpx; }
+.timing-head {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 20rpx;
+}
+.seat-tag {
+  display: inline-block; background: var(--brand); color: #fff;
+  border-radius: 999rpx; padding: 6rpx 26rpx; font-size: 26rpx; font-weight: 600;
+}
+.timer { font-size: 96rpx; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.timer-label { font-size: 24rpx; color: var(--text-sub); margin-top: 8rpx; }
+.remain { margin-top: 14rpx; font-size: 26rpx; }
+.remain.danger { color: var(--danger); font-weight: 600; }
+.fee-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 24rpx; padding-top: 20rpx; border-top: 1rpx dashed #F0E4D2;
+}
+.price-fee { font-size: 36rpx; }
+
+.card-head {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 16rpx;
+}
+.more { font-size: 24rpx; color: var(--brand); }
+
+/* ---------- 本桌清单 / 配件 ---------- */
+.empty-mini { text-align: center; color: var(--text-light); font-size: 24rpx; padding: 24rpx 0; }
+.bill-row, .bill-line {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14rpx 0; font-size: 28rpx;
+}
+.bill-row { border-bottom: 1rpx solid #F7F1E7; }
+.bill-row:last-child { border-bottom: none; }
+.bill-name { flex: 1; margin-right: 16rpx; }
+.bill-amt { font-weight: 600; }
+
+.acc-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 18rpx 0; border-bottom: 1rpx solid #F7F1E7;
+}
+.acc-row:last-child { border-bottom: none; }
+.acc-info { display: flex; flex-direction: column; }
+.acc-name { font-size: 28rpx; }
+.acc-price { font-size: 24rpx; color: var(--brand); margin-top: 4rpx; }
+.acc-stock { color: var(--warning); font-size: 22rpx; }
+.qty-stepper { display: flex; align-items: center; gap: 12rpx; }
+.qty-btn {
+  width: 52rpx; height: 52rpx; line-height: 48rpx; text-align: center;
+  border: 2rpx solid #F0E4D2; border-radius: 12rpx; font-size: 32rpx; color: var(--brand);
+}
+.qty-num { min-width: 40rpx; text-align: center; font-size: 28rpx; }
+.qty-add {
+  background: var(--brand); color: #fff; font-size: 24rpx;
+  border-radius: 999rpx; padding: 10rpx 26rpx; margin-left: 8rpx;
+}
+
+.btn-end { margin-top: 24rpx; }
+
+/* ---------- 账单 ---------- */
+.bill-card { padding: 28rpx 24rpx; }
+.bill-head {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-bottom: 16rpx; border-bottom: 1rpx solid #F0E4D2; margin-bottom: 8rpx;
+}
+.bill-total {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 12rpx; padding-top: 20rpx; border-top: 2rpx solid #F0E4D2;
+  font-size: 32rpx; font-weight: 700;
+}
+.done-tip { text-align: center; font-size: 30rpx; font-weight: 600; color: var(--success); }
+.done-sub { text-align: center; font-size: 24rpx; margin-top: 8rpx; }

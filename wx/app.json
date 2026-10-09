@@ -1,0 +1,68 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/custom/upload/upload",
+    "pages/custom/preview/preview",
+    "pages/custom/confirm/confirm",
+    "pages/mall/list/list",
+    "pages/mall/detail/detail",
+    "pages/mall/cart/cart",
+    "pages/mall/checkout/checkout",
+    "pages/store/scan-timing/scan-timing",
+    "pages/order/list/list",
+    "pages/order/detail/detail",
+    "pages/member/center/center",
+    "pages/member/points-log/points-log",
+    "pages/gallery/list/list",
+    "pages/gallery/publish/publish",
+    "pages/owner/cashier/cashier",
+    "pages/user/profile/profile"
+  ],
+  "window": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "拼豆手工店",
+    "navigationBarBackgroundColor": "#FFF7EC",
+    "backgroundColor": "#FFF7EC",
+    "backgroundTextStyle": "light"
+  },
+  "tabBar": {
+    "color": "#9B917F",
+    "selectedColor": "#E86A33",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/mall/list/list",
+        "text": "商城"
+      },
+      {
+        "pagePath": "pages/custom/upload/upload",
+        "text": "来图定制"
+      },
+      {
+        "pagePath": "pages/order/list/list",
+        "text": "订单"
+      },
+      {
+        "pagePath": "pages/user/profile/profile",
+        "text": "我的"
+      }
+    ]
+  },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于展示就近门店与到店导航"
+    },
+    "scope.writePhotosAlbum": {
+      "desc": "用于保存拼豆图纸到相册"
+    }
+  },
+  "style": "v2",
+  "componentFramework": "glass-easel",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

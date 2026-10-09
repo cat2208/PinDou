@@ -1,0 +1,26 @@
+<!--pages/gallery/publish/publish.wxml 晒图发布-->
+<view class="page fade-in">
+  <view class="sec-title">上传作品图片（最多 3 张）</view>
+  <view class="img-row">
+    <view class="img-box" wx:for="{{images}}" wx:key="*this">
+      <image class="img-preview" src="{{item}}" mode="aspectFill" />
+      <text class="img-del" bindtap="removeImg" data-i="{{index}}">×</text>
+    </view>
+    <view class="img-box add" bindtap="chooseImg" wx:if="{{images.length < 3}}">
+      <text class="add-plus">+</text>
+    </view>
+  </view>
+
+  <view class="sec-title">作品标题</view>
+  <input class="card title-input" placeholder="给作品起个名字吧" value="{{title}}" bindinput="onTitle" />
+
+  <view class="sec-title">作品标签</view>
+  <view class="tag-row">
+    <text class="tag {{tag === item ? 'on' : ''}}" wx:for="{{tags}}" wx:key="*this" bindtap="pickTag" data-t="{{item}}">{{item}}</text>
+  </view>
+
+  <view class="safe-bottom" />
+  <view class="fix-bar">
+    <button class="btn-primary" bindtap="submit">发布</button>
+  </view>
+</view>

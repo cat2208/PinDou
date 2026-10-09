@@ -1,0 +1,28 @@
+/* pages/mall/list/list.wxss */
+.cat-chip-row { display: flex; flex-wrap: wrap; margin-bottom: 20rpx; }
+.cat-chip {
+  padding: 10rpx 28rpx;
+  margin: 0 16rpx 16rpx 0;
+  background: #fff;
+  border-radius: 999rpx;
+  font-size: 26rpx;
+  color: var(--text-sub);
+  border: 1rpx solid #F0E4D2;
+}
+.cat-chip.active {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+  font-weight: 600;
+}
+
+.product-grid { align-items: stretch; }
+.p-card { display: flex; flex-direction: column; padding: 0; overflow: hidden; margin-bottom: 24rpx; }
+.p-img { width: 100%; height: 240rpx; background: #FFF0E4; }
+.p-info { padding: 16rpx 20rpx 20rpx; }
+.p-name {
+  font-size: 28rpx; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.p-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8rpx; }
+.p-sales { font-size: 22rpx; }

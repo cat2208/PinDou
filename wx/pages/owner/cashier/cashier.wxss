@@ -1,0 +1,115 @@
+/* pages/owner/cashier/cashier.wxss 收银台 */
+
+/* ---------- 登录 ---------- */
+.login-card { padding: 40rpx 32rpx; margin-top: 60rpx; }
+.login-title { font-size: 36rpx; font-weight: 700; text-align: center; }
+.login-sub { font-size: 24rpx; color: var(--text-sub); text-align: center; margin: 10rpx 0 24rpx; }
+.login-btn { margin-top: 28rpx; }
+.login-hint { display: block; text-align: center; font-size: 22rpx; color: var(--text-light); margin-top: 16rpx; }
+
+/* ---------- 头部 ---------- */
+.cashier-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 20rpx;
+}
+.staff-name { font-size: 32rpx; font-weight: 700; margin-right: 14rpx; }
+.staff-role { font-size: 24rpx; color: var(--brand); background: #FFEFE3; border-radius: 999rpx; padding: 4rpx 16rpx; }
+.staff-logout { font-size: 26rpx; color: var(--text-sub); }
+
+/* ---------- Tab ---------- */
+.tabs { display: flex; padding: 8rpx; margin-bottom: 20rpx; }
+.tab {
+  flex: 1; text-align: center; padding: 16rpx 0;
+  font-size: 28rpx; color: var(--text-sub); border-radius: var(--radius);
+}
+.tab-active { background: var(--brand); color: #fff; font-weight: 600; }
+
+.order-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16rpx; padding: 0 4rpx;
+}
+.order-head-text { font-size: 26rpx; color: var(--text-sub); }
+.refresh-btn { font-size: 26rpx; color: var(--brand); }
+
+/* ---------- 订单卡片 ---------- */
+.order-card { padding: 24rpx; }
+.order-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12rpx; }
+.seat-badge { background: var(--brand); color: #fff; border-radius: 999rpx; padding: 6rpx 24rpx; font-size: 26rpx; font-weight: 600; }
+.order-no { font-size: 22rpx; color: var(--text-light); }
+.order-line {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8rpx 0; font-size: 26rpx; color: var(--text-main);
+}
+.line-name { color: var(--text-sub); }
+.overtime { color: var(--danger); }
+.deduct { color: var(--danger); }
+.order-total {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 10rpx; padding-top: 16rpx; border-top: 2rpx solid #F0E4D2;
+  font-size: 30rpx; font-weight: 700;
+}
+.order-actions { display: flex; justify-content: space-between; gap: 20rpx; margin-top: 20rpx; }
+.mini-btn { flex: 1; font-size: 26rpx; padding: 14rpx 0; }
+
+/* ---------- 收入统计 ---------- */
+.stat-grid { display: flex; gap: 20rpx; }
+.stat-card { flex: 1; display: flex; flex-direction: column; padding: 24rpx; }
+.stat-card.full { margin-top: 0; flex-direction: column; }
+.stat-title { font-size: 24rpx; color: var(--text-sub); }
+.stat-total { font-size: 40rpx; font-weight: 800; margin: 8rpx 0 4rpx; }
+.stat-count { font-size: 22rpx; color: var(--text-light); margin-bottom: 12rpx; }
+.stat-line {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6rpx 0; font-size: 24rpx;
+  border-top: 1rpx solid #F7F1E7;
+}
+.stat-line text:first-child { color: var(--text-sub); }
+
+/* 趋势图 */
+.trend-card { padding: 24rpx; }
+.card-title { font-size: 28rpx; font-weight: 700; display: block; margin-bottom: 16rpx; }
+.trend-row { display: flex; align-items: center; margin-bottom: 12rpx; }
+.trend-date { width: 100rpx; font-size: 22rpx; color: var(--text-sub); flex-shrink: 0; }
+.trend-bar-wrap { flex: 1; height: 24rpx; background: #F7F1E7; border-radius: 999rpx; overflow: hidden; margin: 0 16rpx; }
+.trend-bar { height: 100%; background: linear-gradient(90deg, #FF9A5A, #E86A33); border-radius: 999rpx; min-width: 8rpx; }
+.trend-amount { width: 140rpx; text-align: right; font-size: 22rpx; font-weight: 600; flex-shrink: 0; }
+
+/* ---------- 弹层 ---------- */
+.mask {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: flex-end; z-index: 100;
+}
+.sheet {
+  width: 100%; background: #fff; border-radius: 32rpx 32rpx 0 0;
+  padding: 32rpx 28rpx calc(32rpx + env(safe-area-inset-bottom));
+  max-height: 80vh; overflow-y: auto;
+}
+.sheet-title { font-size: 32rpx; font-weight: 700; text-align: center; margin-bottom: 12rpx; }
+.pay-fee { text-align: center; font-size: 28rpx; margin-bottom: 20rpx; }
+.pay-block-title { font-size: 26rpx; font-weight: 600; margin: 20rpx 0 12rpx; }
+
+.coupon-scroll { max-height: 300rpx; }
+.coupon-item {
+  display: flex; justify-content: space-between; align-items: center;
+  border: 2rpx solid #F0E4D2; border-radius: var(--radius);
+  padding: 16rpx 20rpx; margin-bottom: 12rpx;
+}
+.coupon-item.coupon-active { border-color: var(--brand); background: var(--brand-light); }
+.coupon-code { font-size: 26rpx; font-weight: 600; }
+.coupon-value { font-size: 24rpx; color: var(--text-sub); }
+.no-coupon { font-size: 24rpx; color: var(--text-light); padding: 8rpx 0; }
+
+.coupon-input {
+  border: 2rpx solid #F0E4D2; border-radius: var(--radius);
+  padding: 16rpx 20rpx; font-size: 28rpx; background: #FFFBF4;
+}
+
+.pay-methods { display: flex; gap: 20rpx; }
+.pay-method {
+  flex: 1; text-align: center; padding: 16rpx 0;
+  border: 2rpx solid #F0E4D2; border-radius: var(--radius); font-size: 28rpx;
+}
+.pay-method-active { border-color: var(--brand); background: var(--brand-light); color: var(--brand); font-weight: 600; }
+
+.sheet-actions { display: flex; gap: 20rpx; margin-top: 32rpx; }
+.sheet-actions button { flex: 1; }

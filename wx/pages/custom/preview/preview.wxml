@@ -1,0 +1,108 @@
+<!--pages/custom/preview/preview.wxml 来图定制-预览报价-->
+<view class="page fade-in">
+  <view class="card">
+    <view class="step">STEP 3 · 预览与报价</view>
+    <image class="preview-img" src="{{pattern.patternUrl ? baseUrl + pattern.patternUrl : image}}" mode="aspectFit" binderror="onImgError" />
+    <text wx:if="{{patternId}}" class="sub center">已生成拼豆图纸，效果仅供参考，成品以实物为准</text>
+    <text wx:else class="sub center">效果仅供参考，成品以实物为准</text>
+  </view>
+
+  <!-- 拼豆图纸信息 -->
+  <view class="card" wx:if="{{patternId}}">
+    <view class="quote-head">
+      <text class="title">拼豆图纸</text>
+      <text class="badge badge-info">{{pattern.style === 'REALISTIC' ? '写实' : '卡通'}}</text>
+    </view>
+    <view class="pattern-stats">
+      <view class="stat">
+        <text class="stat-num">{{size}}</text>
+        <text class="stat-label">成品尺寸</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{pattern.gridWidth}}×{{pattern.gridHeight}}</text>
+        <text class="stat-label">网格</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{pattern.beadSize}}mm</text>
+        <text class="stat-label">豆粒规格</text>
+      </view>
+      <view class="stat">
+        <text class="stat-num">{{pattern.totalBeans}}</text>
+        <text class="stat-label">总颗数</text>
+      </view>
+    </view>
+    <image wx:if="{{pattern.patternUrl}}" class="pattern-img" src="{{baseUrl + pattern.patternUrl}}" mode="widthFix" />
+    <button wx:if="{{pattern.patternUrl}}" class="btn-outline save-pattern-btn" bindtap="onSavePattern" loading="{{saving}}">保存图纸到相册</button>
+  </view>
+
+  <!-- 配豆清单 -->
+  <view class="card" wx:if="{{colors.length}}">
+    <view class="quote-head" bindtap="onToggleColors">
+      <text class="title">配豆清单（{{colors.length}} 色）</text>
+      <text class="toggle-link">{{colorsExpanded ? '收起 ▴' : '展开 ▾'}}</text>
+    </view>
+    <view class="color-list">
+      <view class="color-item" wx:for="{{colors}}" wx:key="code" wx:if="{{colorsExpanded || index < 8}}">
+        <view class="color-chip" style="background:{{item.hex}}"></view>
+        <text class="color-code">{{item.code}}</text>
+        <text class="color-count">{{item.count}} 颗</text>
+        <text class="color-packs">{{item.packs}} 包</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="form-item">
+      <text class="form-label">成品尺寸（原图）</text>
+      <text class="form-value">{{size}}</text>
+    </view>
+    <view class="form-item">
+      <text class="form-label">制作数量</text>
+      <view class="form-value qty">
+        <text class="qty-btn" bindtap="changeQty" data-delta="-1">－</text>
+        <text class="qty-num">{{qty}}</text>
+        <text class="qty-btn" bindtap="changeQty" data-delta="1">＋</text>
+      </view>
+    </view>
+    <view class="form-item" wx:if="{{remark}}">
+      <text class="form-label">备注</text>
+      <text class="form-value remark-text">{{remark}}</text>
+    </view>
+  </view>
+
+  <view class="card quote-card">
+    <view class="quote-head">
+      <text class="title">智能报价</text>
+      <text wx:if="{{quoteSource === 'server' && patternId}}" class="badge badge-info">图纸精算</text>
+      <text wx:elif="{{quoteSource === 'server'}}" class="badge badge-info">AI 实时估价</text>
+      <text wx:else class="badge badge-gray">阶梯参考价</text>
+    </view>
+    <view class="quote-row" wx:if="{{patternId}}">
+      <text class="sub">豆料（{{pattern.totalBeans}} 颗）</text>
+      <text class="sub">已计入</text>
+    </view>
+    <view class="quote-row">
+      <text class="sub">单价（元/件）</text>
+      <text class="price"><text class="price-symbol">¥</text>{{unitPrice}}</text>
+    </view>
+    <view class="quote-row">
+      <text class="sub">数量</text>
+      <text class="sub">× {{qty}}</text>
+    </view>
+    <view class="quote-row total">
+      <text>预估总价</text>
+      <text class="price"><text class="price-symbol">¥</text><text class="price-int">{{totalPrice}}</text></text>
+    </view>
+    <view class="quote-row">
+      <text class="sub">预计发货</text>
+      <text class="sub">{{deliveryDay}} 天内（制作周期）</text>
+    </view>
+    <view class="quote-tip">* 最终价格以客服确认后为准，多退少补</view>
+  </view>
+
+  <button class="btn-primary next" bindtap="onConfirm">确认下单</button>
+  <view class="safe-bottom" />
+
+  <!-- 离屏画布：保存图纸时合成白色背景（透明 PNG 直接存相册会显示黑底） -->
+  <canvas type="2d" id="patternExportCanvas" class="export-canvas" />
+</view>

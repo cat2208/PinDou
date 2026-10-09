@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>拼豆手工店 · 运营管理后台</title>
+<style>
+  :root {
+    --primary:#7c4dff; --primary-dark:#5e35b1; --bg:#f4f5fb; --card:#fff;
+    --text:#23272f; --muted:#8a90a0; --border:#e6e8f0; --ok:#12b76a; --warn:#f79009; --danger:#f04438;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:"Microsoft YaHei","PingFang SC",sans-serif; background:var(--bg); color:var(--text); font-size:14px; }
+  a { color:var(--primary); text-decoration:none; }
+  button { cursor:pointer; }
+  .hidden { display:none !important; }
+
+  /* 登录页 */
+  #loginPage { position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#7c4dff 0%,#4a3fb5 100%); z-index:100; }
+  .login-card { background:#fff; padding:36px 40px; border-radius:16px; width:360px; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+  .login-card h1 { font-size:22px; margin-bottom:6px; color:var(--primary-dark); }
+  .login-card p { color:var(--muted); margin-bottom:24px; font-size:13px; }
+  .login-card label { display:block; font-size:13px; color:var(--muted); margin:12px 0 6px; }
+  .login-card input { width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; outline:none; }
+  .login-card input:focus { border-color:var(--primary); }
+  .login-card button { width:100%; margin-top:20px; padding:11px; background:var(--primary); color:#fff; border:none; border-radius:8px; font-size:15px; }
+  .login-card button:hover { background:var(--primary-dark); }
+  .login-err { color:var(--danger); font-size:13px; min-height:18px; margin-top:10px; }
+
+  /* 布局 */
+  #app { display:flex; min-height:100vh; }
+  #sidebar { width:210px; background:#20212b; color:#cfd2dc; position:fixed; top:0; bottom:0; left:0; display:flex; flex-direction:column; }
+  #sidebar .brand { padding:20px 18px; font-size:16px; font-weight:700; color:#fff; border-bottom:1px solid #2e3040; }
+  #sidebar .brand small { display:block; font-size:11px; color:#8a90a0; font-weight:400; margin-top:4px; }
+  #sidebar nav { flex:1; overflow-y:auto; padding:10px 0; }
+  #sidebar nav a { display:flex; align-items:center; gap:10px; padding:11px 18px; color:#cfd2dc; font-size:14px; }
+  #sidebar nav a:hover { background:#2a2c3a; color:#fff; }
+  #sidebar nav a.active { background:var(--primary); color:#fff; }
+  #sidebar .userbox { padding:14px 18px; border-top:1px solid #2e3040; font-size:12px; color:#aab; }
+  #sidebar .userbox b { display:block; color:#fff; font-size:13px; margin-bottom:2px; }
+
+  #main { margin-left:210px; flex:1; padding:24px 28px; min-width:0; }
+  .page-title { font-size:20px; font-weight:700; margin-bottom:4px; }
+  .page-sub { color:var(--muted); margin-bottom:20px; font-size:13px; }
+
+  /* 卡片 & 统计 */
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; margin-bottom:20px; }
+  .stat-card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+  .stat-card .label { color:var(--muted); font-size:13px; margin-bottom:6px; }
+  .stat-card .num { font-size:26px; font-weight:700; }
+  .stat-card .num.warn { color:var(--warn); } .stat-card .num.danger { color:var(--danger); } .stat-card .num.ok { color:var(--ok); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:18px; margin-bottom:18px; }
+  .card h3 { font-size:15px; margin-bottom:12px; }
+
+  /* 表格 */
+  table { width:100%; border-collapse:collapse; }
+  th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:middle; }
+  th { color:var(--muted); font-weight:600; font-size:12px; background:#fafbfe; }
+  tr:hover td { background:#faf9ff; }
+  .table-wrap { overflow-x:auto; }
+
+  /* 按钮与徽章 */
+  .btn { display:inline-block; padding:7px 14px; border-radius:8px; border:1px solid var(--border); background:#fff; font-size:13px; color:var(--text); }
+  .btn:hover { border-color:var(--primary); color:var(--primary); }
+  .btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn.primary:hover { background:var(--primary-dark); }
+  .btn.warn { background:var(--warn); border-color:var(--warn); color:#fff; }
+  .btn.danger { background:var(--danger); border-color:var(--danger); color:#fff; }
+  .btn.sm { padding:4px 10px; font-size:12px; }
+  .badge { display:inline-block; padding:2px 10px; border-radius:20px; font-size:12px; background:#eef0fb; color:var(--primary-dark); }
+  .badge.warn { background:#fff4e0; color:#b25e00; }
+  .badge.danger { background:#fee9e7; color:#c02a1f; }
+  .badge.ok { background:#e2f8ee; color:#07a05c; }
+  .badge.gray { background:#eef0f4; color:#666c7d; }
+
+  /* 表单 */
+  .form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px 16px; }
+  .form-item label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  .form-item input, .form-item select, .form-item textarea { width:100%; padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; outline:none; }
+  .form-item input:focus, .form-item select:focus { border-color:var(--primary); }
+  .form-actions { margin-top:16px; display:flex; gap:10px; }
+  .toolbar { display:flex; gap:10px; align-items:center; margin-bottom:14px; flex-wrap:wrap; }
+  .toolbar input, .toolbar select { padding:8px 10px; border:1px solid var(--border); border-radius:8px; font-size:13px; outline:none; }
+  .toolbar input:focus { border-color:var(--primary); }
+
+  /* 趋势图与配色卡 */
+  .trend { display:flex; align-items:flex-end; gap:10px; height:150px; padding-top:10px; }
+  .trend .bar { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; height:100%; justify-content:flex-end; }
+  .trend .bar .v { width:100%; max-width:36px; background:var(--primary); border-radius:6px 6px 0 0; min-height:2px; position:relative; }
+  .trend .bar .v span { position:absolute; top:-20px; left:50%; transform:translateX(-50%); font-size:11px; color:var(--muted); white-space:nowrap; }
+  .trend .bar .d { font-size:11px; color:var(--muted); }
+  .color-dot { display:inline-block; width:14px; height:14px; border-radius:4px; border:1px solid rgba(0,0,0,.1); vertical-align:-2px; margin-right:5px; }
+  .img-thumb { width:56px; height:56px; object-fit:cover; border-radius:8px; background:#f0f1f6; }
+  .img-thumb.lg { width:120px; height:120px; }
+
+  /* 对话框 */
+  .modal-mask { position:fixed; inset:0; background:rgba(20,22,35,.45); display:flex; align-items:center; justify-content:center; z-index:50; }
+  .modal { background:#fff; border-radius:14px; width:min(680px,94vw); max-height:88vh; overflow:auto; padding:22px 24px; }
+  .modal h3 { font-size:16px; margin-bottom:14px; }
+  .modal-close { float:right; border:none; background:none; font-size:18px; color:var(--muted); }
+  .toast { position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#20212b; color:#fff; padding:10px 22px; border-radius:10px; font-size:13px; z-index:999; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+  .toast.ok { background:var(--ok); } .toast.err { background:var(--danger); }
+  .muted { color:var(--muted); font-size:12px; }
+  .mt12 { margin-top:12px; } .mt16 { margin-top:16px; }
+  .flex { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .pager { display:flex; gap:10px; align-items:center; margin-top:14px; color:var(--muted); font-size:13px; }
+  .pager button { border:1px solid var(--border); background:#fff; border-radius:8px; padding:5px 12px; }
+  .pager button:disabled { opacity:.4; }
+  #loginPage.hidden, #app.hidden { display:none; }
+</style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="loginPage">
+  <div class="login-card">
+    <h1>拼豆手工店 · 运营后台</h1>
+    <p>PC 端管理 · 需店铺 MANAGER / OWNER 账号</p>
+    <label>账号</label>
+    <input id="loginUser" placeholder="owner" autocomplete="off">
+    <label>密码</label>
+    <input id="loginPass" type="password" placeholder="demo123456">
+    <button id="loginBtn">登 录</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- 主应用 -->
+<div id="app" class="hidden">
+  <aside id="sidebar">
+    <div class="brand">运营管理后台<small>拼豆手工店 Pin Gong Store</small></div>
+    <nav id="nav"></nav>
+    <div class="userbox">
+      <b id="meName">-</b>
+      <span id="meRole"></span><br>
+      <a href="javascript:void(0)" onclick="logout()" style="color:#f04438;font-size:12px;">退出登录</a>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+'use strict';
+/* ================= 全局配置 ================= */
+var BASE = location.hostname === 'localhost' || location.hostname === '127.0.0.1' ? 'http://localhost:3100' : (location.protocol + '//' + location.host);
+var TOKEN_KEY = 'wx_admin_token';
+var ME_KEY = 'wx_admin_me';
+
+function getToken() { return localStorage.getItem(TOKEN_KEY) || ''; }
+function getMe() { try { return JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e) { return null; } }
+function saveAuth(token, me) { localStorage.setItem(TOKEN_KEY, token); localStorage.setItem(ME_KEY, JSON.stringify(me)); }
+function logout() { localStorage.removeItem(TOKEN_KEY); localStorage.removeItem(ME_KEY); location.reload(); }
+
+var STATUS_CN = {
+  PENDING:'待接单', ACCEPTED:'已接单', COLORING:'制豆中', ASSEMBLING:'拼装中', IRONING:'熨烫中',
+  QC_PENDING:'质检中', QC_PASSED:'质检通过', DONE:'已完成', SHIPPED:'已发货', DELIVERED:'待确认',
+  CONFIRMED:'已完成', CANCELLED:'已取消'
+};
+var STATUS_FLOW = {
+  PENDING:['ACCEPTED','CANCELLED'], ACCEPTED:['COLORING','CANCELLED'],
+  COLORING:['ASSEMBLING'], ASSEMBLING:['IRONING'], IRONING:['QC_PENDING'],
+  QC_PENDING:['QC_PASSED'], QC_PASSED:['DONE'], DONE:['SHIPPED'],
+  SHIPPED:['DELIVERED']
+};
+
+function api(path, opts) {
+  opts = opts || {};
+  opts.headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  var t = getToken();
+  if (t) opts.headers.Authorization = 'Bearer ' + t;
+  return fetch(BASE + '/api' + path, opts).then(function (r) {
+    return r.json().catch(function () { return { code: -1, msg: '响应解析失败', data: null }; });
+  }).then(function (j) {
+    if (j && j.code === 0) return j.data;
+    if (j && j.code === 401) { logout(); throw new Error('登录已过期，请重新登录'); }
+    throw new Error((j && j.msg) || '请求失败');
+  });
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]; }); }
+function money(x) { return '¥' + (Number(x || 0).toFixed(2)); }
+function absUrl(u) { if (!u) return ''; return u.indexOf('http') === 0 ? u : (BASE + u); }
+function time(t) { if (!t) return '-'; return String(t).replace('T', ' ').slice(0, 19); }
+function toast(msg, type) {
+  var el = document.createElement('div'); el.className = 'toast ' + (type || ''); el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(function () { el.remove(); }, 2600);
+}
+function badge(status) {
+  var map = { CANCELLED:'danger', QC_PENDING:'warn', PENDING:'warn', DELIVERED:'warn', DONE:'ok', CONFIRMED:'ok', QC_PASSED:'ok', SHIPPED:'gray' };
+  return '<span class="badge ' + (map[status] || '') + '">' + (STATUS_CN[status] || status) + '</span>';
+}
+function modal(html) {
+  document.getElementById('modalRoot').innerHTML =
+    '<div class="modal-mask" onclick="if(event.target===this)closeModal()"><div class="modal">' + html + '</div></div>';
+}
+function closeModal() { document.getElementById('modalRoot').innerHTML = ''; }
+
+/* ================= 登录 ================= */
+function doLogin() {
+  var u = document.getElementById('loginUser').value.trim();
+  var p = document.getElementById('loginPass').value;
+  if (!u || !p) { document.getElementById('loginErr').textContent = '请输入账号和密码'; return; }
+  document.getElementById('loginErr').textContent = '登录中...';
+  fetch(BASE + '/api/staff/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username: u, password: p })
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (j.code !== 0 || !j.data || !j.data.token) throw new Error((j.msg) || '账号或密码错误');
+    saveAuth(j.data.token, j.data.staffInfo || {});
+    document.getElementById('loginPage').classList.add('hidden');
+    bootstrap();
+  }).catch(function (e) {
+    document.getElementById('loginErr').textContent = e.message || '登录失败';
+  });
+}
+
+/* ================= 路由/导航 ================= */
+var PAGES = [
+  { key:'dashboard', name:'仪表盘' },
+  { key:'orders', name:'定制订单' },
+  { key:'products', name:'商品管理' },
+  { key:'inventory', name:'库存管理' },
+  { key:'coupons', name:'优惠券' },
+  { key:'pricing', name:'运营定价' },
+  { key:'members', name:'会员管理' }
+];
+var currentPage = 'dashboard';
+var pageState = {};
+
+function renderNav() {
+  document.getElementById('nav').innerHTML = PAGES.map(function (p) {
+    return '<a href="javascript:void(0)" data-page="' + p.key + '" class="' + (currentPage === p.key ? 'active' : '') + '">' + p.name + '</a>';
+  }).join('');
+  document.querySelectorAll('#nav a').forEach(function (a) {
+    a.onclick = function () { currentPage = a.getAttribute('data-page'); renderNav(); renderPage(); };
+  });
+}
+function bootstrap() {
+  var me = getMe() || {};
+  document.getElementById('meName').textContent = me.real_name || me.username || '管理员';
+  document.getElementById('meRole').textContent = me.role || '';
+  document.getElementById('app').classList.remove('hidden');
+  renderNav();
+  renderPage();
+}
+
+/* ================= 仪表盘 ================= */
+function renderDashboard() {
+  var el = document.getElementById('main');
+  el.innerHTML = '<h2 class="page-title">仪表盘</h2><p class="page-sub">门店经营概览（实时）</p><div id="dashBody"><p class="muted">加载中...</p></div>';
+  api('/admin/ops/overview').then(function (d) {
+    var cards = [
+      { label:'今日订单', num:d.todayOrderCount, cls:'' },
+      { label:'今日营收', num:money(d.todayRevenue), cls:'' },
+      { label:'累计营收', num:money(d.totalRevenue), cls:'ok' },
+      { label:'待接单', num:d.pendingCount, cls:'warn' },
+      { label:'待质检', num:d.qcPending, cls:'warn' },
+      { label:'库存预警', num:d.lowStock, cls:d.lowStock > 0 ? 'danger' : 'ok' },
+      { label:'累计定制单', num:d.customTotal, cls:'' },
+      { label:'门店会员', num:d.memberTotal, cls:'' }
+    ];
+    var maxA = d.trend && d.trend.length ? Math.max.apply(null, d.trend.map(function (t) { return t.amount; })) : 0;
+    document.getElementById('dashBody').innerHTML =
+      '<div class="cards">' + cards.map(function (c) {
+        return '<div class="stat-card"><div class="label">' + c.label + '</div><div class="num ' + c.cls + '">' + c.num + '</div></div>';
+      }).join('') + '</div>' +
+      '<div class="card"><h3>近 7 日销售额</h3><div class="trend">' + (d.trend || []).map(function (t) {
+        var h = maxA > 0 ? Math.max(4, Math.round(t.amount / maxA * 100)) : 2;
+        return '<div class="bar"><div class="v" style="height:' + h + '%"><span>' + (t.amount > 0 ? t.amount : '') + '</span></div><div class="d">' + t.date + '</div></div>';
+      }).join('') + '</div></div>';
+  }).catch(function (e) { document.getElementById('dashBody').innerHTML = '<p class="muted" style="color:var(--danger)">' + esc(e.message) + '</p>'; });
+}
+
+/* ================= 定制订单 ================= */
+function renderOrders() {
+  var st = pageState.orders || (pageState.orders = { status:'ALL', page:1 });
+  var el = document.getElementById('main');
+  el.innerHTML = '<h2 class="page-title">定制订单</h2><p class="page-sub">来图定制全流程：接单 → 制豆 → 拼装 → 熨烫 → 质检 → 发货</p>' +
+    '<div class="toolbar"><select id="ordStatus">' +
+    '<option value="ALL">全部状态</option>' +
+    Object.keys(STATUS_CN).map(function (k) { return '<option value="' + k + '">' + STATUS_CN[k] + '</option>'; }).join('') +
+    '</select><button class="btn primary" onclick="loadOrders()">查询</button></div>' +
+    '<div class="card table-wrap"><table><thead><tr><th>单号</th><th>图纸</th><th>尺寸</th><th>颗数/色数</th><th>金额</th><th>状态</th><th>下单时间</th><th>操作</th></tr></thead><tbody id="ordBody"><tr><td colspan="8" class="muted">加载中...</td></tr></tbody></table>' +
+    '<div class="pager"><button id="ordPrev">上一页</button><span id="ordPageInfo"></span><button id="ordNext">下一页</button></div></div>';
+  document.getElementById('ordStatus').value = st.status;
+  document.getElementById('ordPrev').onclick = function () { if (st.page > 1) { st.page--; loadOrders(); } };
+  document.getElementById('ordNext').onclick = function () { st.page++; loadOrders(); };
+  loadOrders();
+}
+function loadOrders() {
+  var st = pageState.orders;
+  st.status = document.getElementById('ordStatus').value;
+  api('/admin/orders?status=' + st.status + '&page=' + st.page + '&pageSize=10').then(function (d) {
+    st.total = d.total;
+    document.getElementById('ordBody').innerHTML = (d.list.length ? d.list.map(function (o) {
+      var thumbs = '<img class="img-thumb" style="width:42px;height:42px" src="' + esc(absUrl(o.patternUrl || o.image)) + '" onerror="this.style.visibility=\'hidden\'">';
+      return '<tr><td>' + esc(o.orderNo) + '</td><td>' + thumbs + '</td><td>' + o.width + '×' + o.height + 'cm</td>' +
+        '<td>' + (o.totalBeans || '-') + ' 颗 / ' + (o.colorCount || '-') + ' 色</td>' +
+        '<td>' + money(o.totalPrice) + '</td><td>' + badge(o.status) + '</td><td class="muted">' + time(o.createdAt) + '</td>' +
+        '<td><button class="btn sm" onclick="viewOrder(' + o.id + ')">详情 / 流转</button></td></tr>';
+    }).join('') : '<tr><td colspan="8" class="muted">暂无订单</td></tr>');
+    document.getElementById('ordPageInfo').textContent = '第 ' + st.page + ' / ' + Math.max(1, Math.ceil(st.total / 10)) + ' 页（共 ' + st.total + ' 单）';
+    document.getElementById('ordPrev').disabled = st.page <= 1;
+    document.getElementById('ordNext').disabled = d.list.length < 10;
+  }).catch(function (e) { document.getElementById('ordBody').innerHTML = '<tr><td colspan="8" style="color:var(--danger)">' + esc(e.message) + '</td></tr>'; });
+}
+function viewOrder(id) {
+  api('/admin/orders/' + id).then(function (o) {
+    var colors = (o.colors || []).slice(0, 24);
+    var colorHtml = colors.length ? colors.map(function (c) {
+      return '<span style="margin-right:12px;white-space:nowrap"><span class="color-dot" style="background:' + esc(c.hex || '#ccc') + '"></span>' +
+        '<span class="muted">' + esc(c.code || '') + '</span> ×' + (c.count || 0) + ' 颗</span>';
+    }).join('') : '<span class="muted">无配豆清单</span>';
+    var pb = o.priceBreakdown || {};
+    var nextBtns = '';
+    var me = getMe() || {};
+    if (me.role !== 'STAFF' || o.status === 'PENDING' || o.status === 'ACCEPTED') {
+      var nexts = STATUS_FLOW[o.status] || [];
+      nextBtns = nexts.map(function (to) {
+        if (to === 'SHIPPED') {
+          return '<button class="btn primary sm" onclick="shipOrder(' + o.id + ')">发货</button>';
+        }
+        if (to === 'QC_PASSED') {
+          return '<button class="btn primary sm" onclick="advance(' + o.id + ',\'QC_PASSED\')">质检通过</button>' +
+            '<button class="btn warn sm" onclick="qcFail(' + o.id + ')">质检不通过</button>';
+        }
+        return '<button class="btn primary sm" onclick="advance(' + o.id + ',\'' + to + '\')">' + (STATUS_CN[to] || to) + '</button>';
+      }).join(' ');
+      if (o.status === 'PENDING' || o.status === 'ACCEPTED') nextBtns += ' <button class="btn danger sm" onclick="advance(' + o.id + ',\'CANCELLED\')">取消订单</button>';
+    }
+    if (!nextBtns) nextBtns = '<span class="muted">当前状态无可用操作</span>';
+    modal(
+      '<button class="modal-close" onclick="closeModal()">✕</button>' +
+      '<h3>' + esc(o.orderNo) + ' <span style="font-weight:400;font-size:13px;color:var(--muted)">' + badge(o.status) + '</span></h3>' +
+      '<div class="flex mt12"><img class="img-thumb lg" src="' + esc(absUrl(o.patternUrl || o.image)) + '" onerror="this.style.visibility=\'hidden\'">' +
+      '<div style="line-height:1.9"><div><b>' + esc(o.user && o.user.nickname ? o.user.nickname : ('用户#' + (o.id))) + '</b> <span class="muted">' + esc(o.user && o.user.phone || '') + '</span></div>' +
+      '<div>工艺：' + (o.style || '-') + ' / ' + (o.difficulty || '-') + ' / 熨烫 ' + (o.ironType || '-') + '</div>' +
+      '<div>尺寸 ' + o.width + '×' + o.height + 'cm · 豆 ' + (o.totalBeans || '') + ' 颗 · ' + (o.colorCount || '') + ' 色</div></div></div>' +
+      '<div class="card mt12" style="margin-bottom:0"><h3>配豆清单</h3><div style="line-height:2.1">' + colorHtml + '</div></div>' +
+      '<div class="card mt12" style="margin-bottom:0"><h3>价格构成</h3><div class="flex" style="gap:16px">' +
+      '<span>豆材 ' + money(pb.bean) + '</span><span>人工 ' + money(pb.labor) + '</span><span>熨烫 ' + money(pb.iron) + '</span>' +
+      '<span>配件 ' + money(pb.accessory) + '</span><span>运费 ' + money(pb.shipping) + '</span></div>' +
+      '<div class="mt12"><b>总价 ' + money(pb.total) + '</b> <span class="muted">定金 50% = ' + money(pb.deposit) + '</span></div></div>' +
+      '<div class="card mt12" style="margin-bottom:0"><h3>联系 / 备注</h3>' +
+      '<div>联系人：' + esc(o.contact || '-') + '</div><div>收货地址：' + esc(o.address || '-') + '</div><div>备注：' + esc(o.remark || '-') + '</div></div>' +
+      '<div class="mt16 flex">' + nextBtns + '</div>'
+    );
+  }).catch(function (e) { toast(e.message, 'err'); });
+}
+function advance(id, to) {
+  api('/admin/orders/' + id + '/status', { method: 'POST', body: JSON.stringify({ to: to }) })
+    .then(function () { toast('状态已更新'); closeModal(); loadOrders(); })
+    .catch(function (e) { toast(e.message, 'err'); });
+}
+function shipOrder(id) {
+  modal('<button class="modal-close" onclick="closeModal()">✕</button><h3>订单发货</h3>' +
+    '<div class="form-item"><label>物流公司</label><input id="trackC" placeholder="顺丰/中通/京东等"></div>' +
+    '<div class="form-item mt12"><label>运单号（必填）</label><input id="trackN" placeholder="运单号"></div>' +
+    '<div class="form-actions"><button class="btn primary" onclick="doShip(' + id + ')">确认发货</button><button class="btn" onclick="closeModal()">取消</button></div>');
+}
+function doShip(id) {
+  var c = document.getElementById('trackC').value.trim();
+  var n = document.getElementById('trackN').value.trim();
+  if (!n) { toast('请填写运单号', 'err'); return; }
+  api('/admin/orders/' + id + '/status', { method: 'POST', body: JSON.stringify({ to: 'SHIPPED', trackingCompany: c, trackingNo: n }) })
+    .then(function () { toast('已发货'); closeModal(); loadOrders(); })
+    .catch(function (e) { toast(e.message, 'err'); });
+}
+function qcFail(id) {
+  modal('<button class="modal-close" onclick="closeModal()">✕</button><h3>质检不通过（退回制豆）</h3>' +
+    '<div class="form-item"><label>不合格原因</label><textarea id="qcReason" rows="3" placeholder="如：图案偏移、豆粒缺失、熨烫不均"></textarea></div>' +
+    '<div class="form-actions"><button class="btn warn" onclick="doQcFail(' + id + ')">确认退回</button><button class="btn" onclick="closeModal()">取消</button></div>');
+}
+function doQcFail(id) {
+  var r = document.getElementById('qcReason').value.trim() || '质检不通过';
+  api('/admin/orders/' + id + '/status', { method: 'POST', body: JSON.stringify({ to: 'QC_PASSED', failReason: r }) })
+    .then(function () { toast('已退回制豆'); closeModal(); loadOrders(); })
+    .catch(function (e) { toast(e.message, 'err'); });
+}
+
+/* ================= 商品 ================= */
+function renderProducts() {
+  var st = pageState.products || (pageState.products = { page: 1, keyword: '', category: '' });
+  var el = document.getElementById('main');
+  el.innerHTML = '<h2 class="page-title">商品管理</h2><p class="page-sub">成品 / 材料 / 配件商品维护与上下架</p>' +
+    '<div class="toolbar"><input id="pKeyword" placeholder="按标题/SKU 搜索" value="' + esc(st.keyword) + '" style="width:200px">' +
+    '<select id="pCat"><option value="">全部分类</option><option value="FINISHED">成品</option><option value="MATERIAL">材料</option><option value="ACCESSORY">配件</option></select>' +
+    '<button class="btn" onclick="loadProducts()">查询</button><button class="btn primary" onclick="editProduct(0)">+ 新建商品</button></div>' +
+    '<div class="card table-wrap"><table><thead><tr><th>封面</th><th>SKU</th><th>标题</th><th>分类</th><th>价格</th><th>库存</th><th>豆数</th><th>状态</th><th>操作</th></tr></thead><tbody id="pBody"></tbody></table>' +
+    '<div class="pager"><button id="pPrev">上一页</button><span id="pInfo"></span><button id="pNext">下一页</button></div></div>';
+  document.getElementById('pCat').value = st.category;
+  document.getElementById('pPrev').onclick = function () { if (st.page > 1) { st.page--; loadProducts(); } };
+  document.getElementById('pNext').onclick = function () { st.page++; loadProducts(); };
+  loadProducts();
+}
+function loadProducts() {
+  var st = pageState.products;
+  st.keyword = document.getElementById('pKeyword').value.trim();
+  st.category = document.getElementById('pCat').value;
+  api('/admin/ops/products?keyword=' + encodeURIComponent(st.keyword) + '&category=' + st.category + '&page=' + st.page + '&pageSize=10').then(function (d) {
+    document.getElementById('pBody').innerHTML = (d.list.length ? d.list.map(function (p) {
+      return '<tr><td><img class="img-thumb" style="width:40px;height:40px" src="' + esc(absUrl(p.cover)) + '" onerror="this.style.visibility=\'hidden\'"></td>' +
+        '<td>' + esc(p.sku) + '</td><td>' + esc(p.title) + '</td><td>' + esc(p.category) + '</td>' +
+        '<td>' + money(p.price) + '</td><td>' + (p.stock || 0) + '</td><td>' + (p.beanCount || '-') + '</td>' +
+        '<td>' + (p.enabled ? '<span class="badge ok">上架</span>' : '<span class="badge gray">下架</span>') + '</td>' +
+        '<td><div class="flex"><button class="btn sm" onclick="editProduct(' + p.id + ')">编辑</button>' +
+        '<button class="btn sm ' + (p.enabled ? 'warn' : 'primary') + '" onclick="toggleProduct(' + p.id + ',' + (p.enabled ? 0 : 1) + ')">' + (p.enabled ? '下架' : '上架') + '</button></div></td></tr>';
+    }).join('') : '<tr><td colspan="9" class="muted">暂无商品</td></tr>');
+    document.getElementById('pInfo').textContent = '第 ' + st.page + ' / ' + Math.max(1, Math.ceil(d.total / 10)) + ' 页（共 ' + d.total + ' 个）';
+    document.getElementById('pPrev').disabled = st.page <= 1;
+    document.getElementById('pNext').disabled = d.list.length < 10;
+  }).catch(function (e) { document.getElementById('pBody').innerHTML = '<tr><td colspan="9" style="color:var(--danger)">' + esc(e.message) + '</td></tr>'; });
+}
+function editProduct(id) {
+  if (!id) { productForm(null); return; }
+  api('/admin/ops/products?keyword=&pageSize=100').then(function (big) {
+    var p = big.list.filter(function (x) { return x.id === id; })[0] || null;
+    if (!p) { toast('商品不存在或已被删除', 'err'); return; }
+    productForm(p);
+  }).catch(function (e) { toast(e.message, 'err'); });
+}
+function productForm(p) {
+  modal('<button class="modal-close" onclick="closeModal()">✕</button>' +
+    '<h3>' + (p ? '编辑商品' : '新建商品') + '</h3>' +
+    '<div class="form-grid">' +
+    '<div class="form-item"><label>SKU（唯一）</label><input id="fSku" value="' + esc(p ? p.sku : '') + '"></div>' +
+    '<div class="form-item"><label>标题</label><input id="fTitle" value="' + esc(p ? p.title : '') + '"></div>' +
+    '<div class="form-item"><label>分类</label><select id="fCat"><option value="FINISHED">成品</option><option value="MATERIAL">材料</option><option value="ACCESSORY">配件</option></select></div>' +
+    '<div class="form-item"><label>价格（元）</label><input id="fPrice" type="number" step="0.01" value="' + (p ? p.price : '') + '"></div>' +
+    '<div class="form-item"><label>库存</label><input id="fStock" type="number" value="' + (p ? p.stock : 0) + '"></div>' +
+    '<div class="form-item"><label>豆数（颗，可选）</label><input id="fBeans" type="number" value="' + (p ? p.beanCount || '' : '') + '"></div>' +
+    '</div>' +
+    '<div class="form-item mt12"><label>封面图 URL</label><input id="fCover" value="' + esc(p ? p.cover : '') + '" placeholder="http(s):// 或 /uploads/..."></div>' +
+    '<div class="form-actions"><button class="btn primary" onclick="saveProduct(' + (p ? p.id : 0) + ')">保存</button><button class="btn" onclick="closeModal()">取消</button></div>');
+  document.getElementById('fCat').value = p ? p.category : 'FINISHED';
+}
+function saveProduct(id) {
+  var body = {
+    sku: document.getElementById('fSku').value.trim(),
+    title: document.getElementById('fTitle').value.trim(),
+    category: document.getElementById('fCat').value,
+    price: document.getElementById('fPrice').value,
+    stock: document.getElementById('fStock').value,
+    beanCount: document.getElementById('fBeans').value,
+    cover: document.getElementById('fCover').value.trim()
+  };
+  if (!body.sku) { toast('SKU 必填', 'err'); return; }
+  if (!id) body.enabled = 1;
+  var p = api('/admin/ops/products/' + id, { method: 'PUT', body: JSON.stringify(body) });
+  if (!id) p = api('/admin/ops/products', { method: 'POST', body: JSON.stringify(body) });
+  p.then(function () { toast('已保存'); closeModal(); loadProducts(); }).catch(function (e) { toast(e.message, 'err'); });
+}
+function toggleProduct(id, enabled) {
+  api('/admin/ops/products/' + id, { method: 'PUT', body: JSON.stringify({ enabled: enabled }) })
+    .then(function () { toast(enabled ? '已上架' : '已下架'); loadProducts(); })
+    .catch(function (e) { toast(e.message, 'err'); });
+}
+
+/* ================= 库存 ================= */
+function renderInventory() {
+  var el = document.getElementById('main');
+  el.innerHTML = '<h2 class="page-title">库存管理</h2><p class="page-sub">豆粒 / 配件 / 包装材料库存与低库存预警</p>' +
+    '<div class="toolbar"><input id="invKeyword" placeholder="按名称/编码搜索" style="width:200px"><button class="btn" onclick="loadInventory()">查询</button></div>' +
+    '<div class="card table-wrap"><table><thead><tr><th>类型</th><th>名称</th><th>编码</th><th>库存</th><th>单位</th><th>预警阈值</th><th>状态</th><th>最近入库</th><th>操作</th></tr></thead><tbody id="invBody"></tbody></table></div>';
+  loadInventory();
+}
+function loadInventory() {
+  var kw = document.getElementById('invKeyword').value.trim();
+  api('/admin/ops/inventory?keyword=' + encodeURIComponent(kw)).then(function (d) {
+    document.getElementById('invBody').innerHTML = (d.list.length ? d.list.map(function (i) {
+      return '<tr><td>' + esc(i.itemType) + '</td><td>' + esc(i.itemName) + '</td><td>' + esc(i.itemCode) + '</td>' +
+        '<td><b>' + i.quantity + '</b></td><td>' + esc(i.unit) + '</td><td>' + i.alertThreshold + '</td>' +
+        '<td>' + (i.low ? '<span class="badge danger">低库存</span>' : '<span class="badge ok">正常</span>') + '</td>' +
+        '<td class="muted">' + time(i.lastRestockAt) + '</td>' +
+        '<td><button class="btn sm" onclick="restockModal(' + i.id + ',\'' + esc(i.itemName) + '\')">入库调整</button></td></tr>';
+    }).join('') : '<tr><td colspan="9" class="muted">暂无库存条目</td></tr>');
+  }).catch(function (e) { document.getElementById('invBody').innerHTML = '<tr><td colspan="9" style="color:var(--danger)">' + esc(e.message) + '</td></tr>'; });
+}
+function restockModal(id, name) {
+  modal('<button class="modal-close" onclick="closeModal()">✕</button><h3>入库调整：' + esc(name) + '</h3>' +
+    '<div class="form-item"><label>数量（正数入库，负数出库）</label><input id="rQty" type="number" placeholder="如 100 或 -20"></div>' +
+    '<div class="form-item mt12"><label>备注</label><input id="rRemark" placeholder="如：补货 XX 品牌 5mm 豆"></div>' +
+    '<div class="form-actions"><button class="btn primary" onclick="doRestock(' + id + ')">确认</button><button class="btn" onclick="closeModal()">取消</button></div>');
+}
+function doRestock(id) {
+  var q = Math.round(Number(document.getElementById('rQty').value));
+  if (!q) { toast('数量不能为 0', 'err'); return; }
+  var r = document.getElementById('rRemark').value.trim();
+  api('/admin/ops/inventory/' + id + '/restock', { method: 'POST', body: JSON.stringify({ quantity: q, remark: r }) })
+    .then(function (d) { toast('调整完成，当前库存 ' + d.quantity); closeModal(); loadInventory(); })
+    .catch(function (e) { toast(e.message, 'err'); });
+}
+
+/* ================= 优惠券 ================= */
+function renderCoupons() {
+  var st = pageState.coupons || (pageState.coupons = { status: 'ALL', page: 1 });
+  var el = document.getElementById('main');
+  el.innerHTML = '<h2 class="page-title">优惠券</h2><p class="page-sub">发券、核销状态与有效期管理</p>' +
+    '<div class="toolbar"><select id="cpStatus">' +
+    '<option value="ALL">全部状态</option><option value="UNUSED">未使用</option><option value="USED">已使用</option><option value="EXPIRED">已过期</option><option value="REVOKED">已作废</option>' +
+    '</select><button class="btn" onclick="loadCoupons()">查询</button><button class="btn primary" onclick="editCoupon(0)">+ 发放券</button></div>' +
+    '<div class="card table-wrap"><table><thead><tr><th>券码</th><th>类型</th><th>面值/折扣</th><th>归属</th><th>次数</th><th>有效期至</th><th>状态</th><th>操作</th></tr></thead><tbody id="cpBody"></tbody></table>' +
+    '<div class="pager"><button id="cpPrev">上一页</button><span id="cpInfo"></span><button id="cpNext">下一页</button></div></div>';
+  document.getElementById('cpStatus').value = st.status;
+  document.getElementById('cpPrev').onclick = function () { if (st.page > 1) { st.page--; loadCoupons(); } };
+  document.getElementById('cpNext').onclick = function () { st.page++; loadCoupons(); };
+  loadCoupons();
+}
+function loadCoupons() {
+  var st = pageState.coupons;
+  st.status = document.getElementById('cpStatus').value;
+  api('/admin/ops/coupons?status=' + st.status + '&page=' + st.page + '&pageSize=10').then(function (d) {
+    document.getElementById('cpBody').innerHTML = (d.list.length ? d.list.map(function (c) {
+      var val = c.couponType === 'DISCOUNT' ? (c.discountRate ? (c.discountRate * 10).toFixed(1) + ' 折' : '-') : money(c.faceValue);
+      return '<tr><td>' + esc(c.code) + '</td><td>' + esc(c.couponType) + '</td><td>' + val + '</td>' +
+        '<td>' + esc(c.userName) + '</td><td>' + c.usedCount + '/' + c.totalCount + '</td>' +
+        '<td class="muted">' + time(c.expireAt) + '</td><td>' + badge(c.status) + '</td>' +
+        '<td><div class="flex"><button class="btn sm" onclick="editCoupon(' + c.id + ')">编辑</button>' +
+        (c.status === 'UNUSED' ? '<button class="btn sm danger" onclick="revokeCoupon(' + c.id + ')">作废</button>' : '') + '</div></td></tr>';
+    }).join('') : '<tr><td colspan="8" class="muted">暂无券</td></tr>');
+    document.getElementById('cpInfo').textContent = '第 ' + st.page + ' / ' + Math.max(1, Math.ceil(d.total / 10)) + ' 页（共 ' + d.total + ' 张）';
+    document.getElementById('cpPrev').disabled = st.page <= 1;
+    document.getElementById('cpNext').disabled = d.list.length < 10;
+  }).catch(function (e) { document.getElementById('cpBody').innerHTML = '<tr><td colspan="8" style="color:var(--danger)">' + esc(e.message) + '</td></tr>'; });
+}
+function editCoupon(id) {
+  var c = null;
+  if (id) {
+    api('/admin/ops/coupons?status=ALL&page=1&pageSize=100').then(function (big) {
+      c = big.list.filter(function (x) { return x.id === id; })[0] || null;
+      couponForm(c);
+    });
+  } else couponForm(null);
+}
+function couponForm(c) {
+  modal('<button class="modal-close" onclick="closeModal()">✕</button>' +
+    '<h3>' + (c ? '编辑券：' + esc(c.code) : '发放新券') + '</h3>' +
+    '<div class="form-grid">' +
+    '<div class="form-item"><label>券码（唯一）</label><input id="cCode" value="' + esc(c ? c.code : '') + '"' + (c ? ' disabled' : '') + '></div>' +
+    '<div class="form-item"><label>类型</label><select id="cType">' +
+    '<option value="DISCOUNT">折扣券</option><option value="ACCESSORY">配件券</option><option value="MATERIAL">材料券</option><option value="DURATION">时长券</option>' +
+    '</select></div>' +
+    '<div class="form-item"><label>折扣（0.1~0.99，折扣券用）</label><input id="cRate" type="number" step="0.01" value="' + (c && c.discountRate ? c.discountRate : '') + '"></div>' +
+    '<div class="form-item"><label>面值（元，非折扣券用）</label><input id="cFace" type="number" step="0.01" value="' + (c && c.faceValue != null ? c.faceValue : '') + '"></div>' +
+    '<div class="form-item"><label>有效期至</label><input id="cExpire" type="datetime-local" value="' + (c && c.expireAt ? String(c.expireAt).slice(0, 16) : '') + '"></div>' +
+    '</div>' +
+    '<div class="form-actions"><button class="btn primary" onclick="saveCoupon(' + (c ? c.id : 0) + ')">保存</button><button class="btn" onclick="closeModal()">取消</button></div>');
+  if (c) document.getElementById('cType').value = c.couponType;
+}
+function saveCoupon(id) {
+  var body = {
+    code: document.getElementById('cCode').value.trim(),
+    couponType: document.getElementById('cType').value,
+    discountRate: document.getElementById('cRate').value,
+    faceValue: document.getElementById('cFace').value,
+    expireAt: document.getElementById('cExpire').value ? new Date(document.getElementById('cExpire').value).toISOString() : null
+  };
+  if (!body.code) { toast('券码必填', 'err'); return; }
+  var p = id ? api('/admin/ops/coupons/' + id, { method: 'PUT', body: JSON.stringify(body) }) : api('/admin/ops/coupons', { method: 'POST', body: JSON.stringify(body) });
+  p.then(function () { toast('已保存'); closeModal(); loadCoupons(); }).catch(function (e) { toast(e.message, 'err'); });
+}
+function revokeCoupon(id) {
+  if (!confirm('确认作废该券？')) return;
+  api('/admin/ops/coupons/' + id, { method: 'PUT', body: JSON.stringify({ status: 'REVOKED' }) })
+    .then(function () { toast('已作废'); loadCoupons(); })
+    .catch(function (e) { toast(e.message, 'err'); });
+}
+
+/* ================= 运营定价 ================= */
+function renderPricing() {
+  var el = document.getElementById('main');
+  el.innerHTML = '<h2 class="page-title">运营定价</h2><p class="page-sub">全局定价参数（含拼豆报价参数校准）· 保存即生效</p><div id="pricingBody"><p class="muted">加载中...</p></div>';
+  api('/admin/ops/pricing').then(function (p) {
+    var F = function (id, label, val, step) {
+      return '<div class="form-item"><label>' + label + '</label><input id="' + id + '" type="number" step="' + (step || '0.0001') + '" value="' + (val == null ? '' : val) + '"></div>';
+    };
+    document.getElementById('pricingBody').innerHTML =
+      '<div class="card"><h3>拼豆报价</h3><div class="form-grid">' +
+      F('pxBean', '豆粒单价（元/颗）', p.beanUnitPrice) +
+      F('pxLaborN', '常规人工（元/颗）', p.laborPriceNormal) +
+      F('pxLaborC', '复杂人工（元/颗）', p.laborPriceComplex) +
+      F('pxColor', '复杂阈值（色数）', p.colorThreshold, 1) +
+      F('pxIronMin', '熨烫最低（元）', p.ironGlitterMin, 0.01) +
+      F('pxIronMax', '熨烫最高（元）', p.ironGlitterMax, 0.01) +
+      '</div></div>' +
+      '<div class="card"><h3>配件与运费</h3><div class="form-grid">' +
+      F('pxKey', '钥匙扣（元）', p.accessoryKeychain, 0.01) + F('pxMag', '冰箱贴（元）', p.accessoryFridgeMagnet, 0.01) +
+      F('pxFrame', '相框（元）', p.accessoryFrame, 0.01) + F('pxNoHole', '无孔双面（元）', p.accessoryNoHoleDouble, 0.01) +
+      F('pxShip', '运费（元）', p.shippingFee, 0.01) + F('pxFree', '包邮门槛（元）', p.freeShippingThreshold, 0.01) +
+      F('pxDeposit', '定金比例（0-1）', p.depositRatio, 0.01) +
+      '</div></div>' +
+      '<div class="card"><h3>积分 / 会员</h3><div class="form-grid">' +
+      F('pxPpy', '消费1元得积分', p.pointsPerYuan, 1) + F('pxPty', '积分兑换比例（积分=1元）', p.pointsToYuanRate, 1) +
+      F('pxPdr', '积分抵扣上限比例', p.pointsDeductMaxRatio, 0.01) +
+      '<div class="form-item"><label>生日双倍积分</label><select id="pxBday"><option value="1">开启</option><option value="0">关闭</option></select></div>' +
+      F('pxPem', '积分有效期（月）', p.pointsExpireMonths, 1) + F('pxAcd', '自动确认收货（天）', p.autoConfirmDays, 1) +
+      F('pxCfh', '免费取消小时数', p.cancelFreeHours, 1) +
+      '</div></div>' +
+      '<div class="form-actions"><button class="btn primary" onclick="savePricing()">保存定价</button><span class="muted">更新人：' + esc(getMe() && getMe().real_name || '-') + '</span></div>';
+    document.getElementById('pxBday').value = p.birthdayDoublePoints ? '1' : '0';
+  }).catch(function (e) { document.getElementById('pricingBody').innerHTML = '<p class="muted" style="color:var(--danger)">' + esc(e.message) + '</p>'; });
+}
+function savePricing() {
+  function v(id) { return document.getElementById(id).value; }
+  var body = {
+    beanUnitPrice: v('pxBean'), laborPriceNormal: v('pxLaborN'), laborPriceComplex: v('pxLaborC'),
+    colorThreshold: v('pxColor'), ironGlitterMin: v('pxIronMin'), ironGlitterMax: v('pxIronMax'),
+    accessoryKeychain: v('pxKey'), accessoryFridgeMagnet: v('pxMag'), accessoryFrame: v('pxFrame'),
+    accessoryNoHoleDouble: v('pxNoHole'), shippingFee: v('pxShip'), freeShippingThreshold: v('pxFree'),
+    depositRatio: v('pxDeposit'), pointsPerYuan: v('pxPpy'), pointsToYuanRate: v('pxPty'),
+    pointsDeductMaxRatio: v('pxPdr'), birthdayDoublePoints: document.getElementById('pxBday').value === '1' ? 1 : 0,
+    pointsExpireMonths: v('pxPem'), autoConfirmDays: v('pxAcd'), cancelFreeHours: v('pxCfh')
+  };
+  api('/admin/ops/pricing', { method: 'PUT', body: JSON.stringify(body) })
+    .then(function () { toast('定价已更新并生效'); })
+    .catch(function (e) { toast(e.message, 'err'); });
+}
+
+/* ================= 会员 ================= */
+function renderMembers() {
+  var st = pageState.members || (pageState.members = { page: 1, keyword: '' });
+  var el = document.getElementById('main');
+  el.innerHTML = '<h2 class="page-title">会员管理</h2><p class="page-sub">会员列表与等级权益配置</p>' +
+    '<div class="toolbar"><input id="mKeyword" placeholder="按昵称/手机号/OpenID 搜索" value="' + esc(st.keyword) + '" style="width:220px"><button class="btn" onclick="loadMembers()">查询</button><button class="btn" onclick="loadLevels()">等级配置</button></div>' +
+    '<div class="card table-wrap"><table><thead><tr><th>ID</th><th>昵称</th><th>手机号</th><th>等级</th><th>积分</th><th>余额</th><th>注册时间</th></tr></thead><tbody id="mBody"></tbody></table>' +
+    '<div class="pager"><button id="mPrev">上一页</button><span id="mInfo"></span><button id="mNext">下一页</button></div></div>';
+  document.getElementById('mPrev').onclick = function () { if (st.page > 1) { st.page--; loadMembers(); } };
+  document.getElementById('mNext').onclick = function () { st.page++; loadMembers(); };
+  loadMembers();
+}
+function loadMembers() {
+  var st = pageState.members;
+  st.keyword = document.getElementById('mKeyword').value.trim();
+  api('/admin/ops/members?keyword=' + encodeURIComponent(st.keyword) + '&page=' + st.page + '&pageSize=10').then(function (d) {
+    document.getElementById('mBody').innerHTML = (d.list.length ? d.list.map(function (u) {
+      return '<tr><td>' + u.id + '</td><td>' + (u.avatar ? '<img src="' + esc(absUrl(u.avatar)) + '" style="width:24px;height:24px;border-radius:50%;vertical-align:-6px;margin-right:6px" onerror="this.style.display=\'none\'">' : '') + esc(u.nickname || '-') + '</td>' +
+        '<td>' + esc(u.phone || '-') + '</td><td>' + esc(memberLevelName(u.memberLevel)) + '</td>' +
+        '<td>' + u.points + '</td><td>' + money(u.balance) + '</td><td class="muted">' + time(u.createdAt) + '</td></tr>';
+    }).join('') : '<tr><td colspan="7" class="muted">暂无会员</td></tr>');
+    document.getElementById('mInfo').textContent = '第 ' + st.page + ' / ' + Math.max(1, Math.ceil(d.total / 10)) + ' 页（共 ' + d.total + ' 人）';
+    document.getElementById('mPrev').disabled = st.page <= 1;
+    document.getElementById('mNext').disabled = d.list.length < 10;
+  }).catch(function (e) { document.getElementById('mBody').innerHTML = '<tr><td colspan="7" style="color:var(--danger)">' + esc(e.message) + '</td></tr>'; });
+}
+function memberLevelName(l) {
+  return ['普通会员', '银卡会员', '金卡会员', '钻石会员'][l] || ('Lv' + l);
+}
+function loadLevels() {
+  api('/admin/ops/member-levels').then(function (d) {
+    modal('<button class="modal-close" onclick="closeModal()">✕</button><h3>会员等级配置</h3>' +
+      '<table><thead><tr><th>等级</th><th>名称</th><th>累计积分门槛</th><th>折扣</th><th>启用</th><th>操作</th></tr></thead><tbody>' +
+      d.list.map(function (l) {
+        return '<tr><td>' + l.level + '</td><td><input id="lvName' + l.id + '" value="' + esc(l.name) + '"></td>' +
+          '<td><input id="lvMin' + l.id + '" type="number" value="' + l.minCumulativePoints + '"></td>' +
+          '<td><input id="lvRate' + l.id + '" type="number" step="0.01" value="' + l.discountRate + '"></td>' +
+          '<td><select id="lvOn' + l.id + '"><option value="1">启用</option><option value="0">停用</option></select></td>' +
+          '<td><button class="btn sm" onclick="saveLevel(' + l.id + ')">保存</button></td></tr>';
+      }).join('') + '</tbody></table>' +
+      '<div class="form-actions"><button class="btn" onclick="closeModal()">关闭</button></div>');
+    d.list.forEach(function (l) { document.getElementById('lvOn' + l.id).value = String(l.enabled); });
+  }).catch(function (e) { toast(e.message, 'err'); });
+}
+function saveLevel(id) {
+  api('/admin/ops/member-levels/' + id, {
+    method: 'PUT',
+    body: JSON.stringify({
+      name: document.getElementById('lvName' + id).value,
+      minCumulativePoints: document.getElementById('lvMin' + id).value,
+      discountRate: document.getElementById('lvRate' + id).value,
+      enabled: Number(document.getElementById('lvOn' + id).value)
+    })
+  }).then(function () { toast('等级已保存'); }).catch(function (e) { toast(e.message, 'err'); });
+}
+
+/* ================= 页面路由 ================= */
+function renderPage() {
+  var map = {
+    dashboard: renderDashboard, orders: renderOrders, products: renderProducts,
+    inventory: renderInventory, coupons: renderCoupons, pricing: renderPricing, members: renderMembers
+  };
+  (map[currentPage] || renderDashboard)();
+}
+
+/* ================= 启动 ================= */
+document.getElementById('loginBtn').onclick = doLogin;
+document.getElementById('loginPass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+if (getToken()) {
+  document.getElementById('loginPage').classList.add('hidden');
+  bootstrap();
+} else {
+  document.getElementById('loginUser').value = 'owner';
+  document.getElementById('loginPass').value = 'demo123456';
+}
+</script>
+</body>
+</html>

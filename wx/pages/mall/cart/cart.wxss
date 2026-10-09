@@ -1,0 +1,44 @@
+/* pages/mall/cart/cart.wxss */
+.c-item { display: flex; align-items: center; position: relative; padding-right: 40rpx; }
+.check {
+  width: 40rpx; height: 40rpx;
+  border: 2rpx solid #DDC9AC;
+  border-radius: 999rpx;
+  margin-right: 20rpx;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 24rpx;
+  flex-shrink: 0;
+}
+.check.on { background: var(--brand); border-color: var(--brand); }
+.c-info { flex: 1; min-width: 0; }
+.c-name { display: block; font-size: 30rpx; font-weight: 600; }
+.c-spec { display: block; font-size: 24rpx; color: var(--text-sub); margin: 4rpx 0; }
+.c-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8rpx; }
+.c-del {
+  position: absolute; top: 16rpx; right: 16rpx;
+  color: var(--text-light); font-size: 28rpx;
+  padding: 8rpx;
+}
+.qty { display: flex; align-items: center; }
+.qty-btn {
+  width: 52rpx; height: 52rpx;
+  border: 1rpx solid #E0CDB2; border-radius: 10rpx;
+  text-align: center; line-height: 50rpx;
+  font-size: 28rpx; color: var(--brand); background: #fff;
+}
+.qty-num { width: 72rpx; text-align: center; font-size: 28rpx; font-weight: 700; }
+
+.go-btn { margin-top: 32rpx; }
+
+.checkout-bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: #fff;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  display: flex; align-items: center;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+  z-index: 10;
+}
+.all-check { display: flex; align-items: center; margin-right: 20rpx; }
+.total { display: flex; align-items: baseline; flex: 1; }
+.checkout-bar .btn-primary { padding: 16rpx 32rpx; }
+.checkout-bar-placeholder { height: 140rpx; }

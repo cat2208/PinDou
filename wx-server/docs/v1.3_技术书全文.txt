@@ -1,0 +1,2342 @@
+
+===== PAGE 1 =====
+拼豆手工店小程序 完整开发技术书（三端一体 · 可直接交付 AI 开
+发）
+版本：v1.3 完整版
+适用产物：用户端小程序 + 店员端小程序 + PC 管理后台 三端一体
+用途：本文档为可直接交付给 AI / 开发团队的完整规格说明，包含技术栈、模块划分、数据库建表
+SQL、接口契约、业务算法规则与开发顺序。所有金额、时长、色数阈值等参数均要求后台可配置。
+v1.3 变更记录
+[P0] 新增订单内消息系统：定制订单全程支持用户与店员双向沟通（文字+图片），消息按订单维度隔
+离，未读消息红点提醒，新消息触发微信订阅消息推送
+[P0] 新增质检节点：定制订单在熨烫完成与已发货之间插入质检环节（QC_PENDING →
+QC_PASSED），店员拍照留档，质检不通过可回退至对应制作阶段
+[P0] 新增物流发货与确认收货：定制订单增加物流单号、快递公司、发货确认；用户可查看物流、确
+认收货；超期自动确认收货（天数可配置）
+[P0] 新增轻量会员体系：消费积分、会员等级（普通/银卡/金卡/钻石）、等级折扣、积分抵扣、生日
+月双倍积分、积分过期机制
+[P1] 定制订单状态机扩展：插入 QC_PENDING → QC_PASSED → DELIVERED → CONFIRMED 节点
+[P1] 结算流程集成会员折扣与积分抵扣
+[P1] pricing_config 新增积分与会员相关配置项
+v1.2 变更记录
+[P0] 预约座位增加时间段锁机制，防止预约冲突
+[P0] 增加定制订单商家拒绝流程，前端展示拒绝理由，自动退回定金
+[P0] 明确定金退 / 不退业务规则；增加用户端退款申请流程
+[P1] 图纸生成服务故障降级（后台可手动录入豆子颗数色数）
+[P1] 增加交接班模块、逃单订单标记
+[P1] 库存扣减时机增加后台开关：下单扣库存 / 开始制作扣库存
+[P1] 高危审计事件支持微信告警推送
+[P1] 增加财务对账中心，自动对比微信支付流水和系统订单差异
+[P2 二期可选] 新增 IoT 座位指示灯全套模块、数据表、接口，后台开关控制启用，不影响一期主业务
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+1/57
+===== PAGE 2 =====
+v1.1 变更记录
+[P0] 新增 audit_log  操作审计日志表及对应接口、管理页面，所有高危操作必须留痕
+[P0] store_order  新增 settled_by_staff_id  字段，结算操作可追溯到人
+[P0] user  表新增 deleted_at  软删除字段
+[P0] gallery  表新增 store_id  字段
+[P1] pricing_config  新增 store_id  字段，支持多门店差异化定价；新增 store  门店表
+[P1] 新增库存管理模块： inventory  库存表 + inventory_log  变动流水表，支持库存预警
+[P1] 评论同步增加降级方案（开放平台不可用时支持手动录入）
+0. 阅读约定
+所有价格单位为人民币元，精确到分。
+所有"可配置"参数（豆子单价、手工单价、烫费、配件费、运费、包邮阈值、套餐价、时长阈值等）必
+须存放在后端配置表，禁止硬编码。
+所有涉及资金、计时、核销、状态流转的操作，必须由服务端校验，禁止仅依赖前端状态判断。
+文中 SQL 为 MySQL 8.x 语法，时间统一使用 DATETIME，金额统一使用 DECIMAL(10,2)。
+用户身份使用微信小程序 openid 作为主标识。
+所有高危操作（定价变更、订单撤销/退款、库存调整、权限变更等）必须写入 audit_log，不可绕过。
+多门店场景下，各门店的定价、库存、座位配置相互独立，通过 store_id 隔离。
+[v1.2] IoT 座位指示灯为可选增值模块，后台全局开关控制启用/禁用；关闭时 IoT 模块完全不执行逻
+辑，原有业务不受任何影响；硬件仅做状态展示，所有业务判断依然以数据库 seat 表为准，绝不依赖
+硬件设备上报信号。
+[v1.2] 所有新增配置项存入对应配置表，禁止硬编码；资金、锁、退款逻辑全部服务端校验。
+[v1.3] 消息内容审核：用户发送的消息内容不做实时内容安全过滤（图片走微信内容安全检测 API），
+但保留人工追溯能力——所有消息只写不改、不支持删除（逻辑软删除仅限违规处理场景）。
+[v1.3] 积分操作原子性：积分增加/扣减必须与订单状态变更是同一事务（订单完成→积分入账），禁
+止异步补偿（防止积分超发）。
+[v1.3] 会员等级缓存：用户等级在 Redis 缓存，TTL 1 小时；积分变动触发等级重新计算，计算后刷新缓
+存。
+[v1.3] 质检照片即证据：质检照片上传后不可修改、不可删除，作为交付纠纷处理依据；水印自动叠加
+时间戳与操作人。
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+2/57
+===== PAGE 3 =====
+1. 系统总体架构
+系统采用三端一体架构：
+结算不强制在收银台完成：支持店员在任意座位通过店员端小程序完成结算，也支持顾客在用户端自助
+支付。
+1.1 技术栈
+端 使用者 核心职责
+用户端小程序 顾客
+浏览、来图定制、模板库、预
+约到店、扫码计时、买券/兑
+换、配件下单、订单中心、晒
+图、订单内消息、确认收货、
+会员中心
+店员端小程序 店员 / 店长
+座位看板、扫码开台、计时控
+制、券核销、加购配件、统一
+结算、查看流水、库存盘点、
+消息中心、质检提交、发货录
+入
+PC 管理后台 老板 / 店长
+多门店管理、座位/套餐/定价
+配置、模板管理、评论同步、
+订单管理（含消息/质检/物
+流）、库存管理、会员管理、
+经营报表、审计日志、员工账
+号与权限
+层 选型 说明
+用户端小程序
+uni-app + Vue3 + TypeScript +
+Pinia
+便于后期嵌入 perler-pattern-
+generator
+店员端小程序
+uni-app + Vue3 + TypeScript +
+Pinia
+与用户端共享部分组件与请求
+层，独立分包与权限
+PC 管理后台
+Vue3 + TypeScript + Element
+Plus（或 Ant Design Vue）
+配置类与报表类页面
+后端 Node.js + NestJS
+3/57
+===== PAGE 4 =====
+1.2 推荐目录结构（后端 NestJS）
+层 选型 说明
+统一处理订单、计时、券、评
+论、定价、支付、库存、审
+计、消息、会员
+数据库 MySQL 8.x 业务主数据
+缓存 / 计时 Redis
+计时实时态、座位锁、并发控
+制、验证码、库存缓存、预约
+分布式锁、消息未读计数、会
+员等级缓存、积分锁
+图纸生成
+自部署 perler-pattern-
+generator（封装为内部服务）
+上传图片 -> 生成图纸 -> 返回
+颗数/色数/用量
+MQTT（IoT 二期） EMQX 座位指示灯设备通信
+支付
+微信支付（JSAPI / 小程序支
+付）
+下单、补差价、配件兑换
+对象存储 云厂商 OSS / COS
+用户上传图片、生成图纸、晒
+图、模板图、质检照片
+src/
+  modules/
+    auth/            # 登录、openid 换取、JWT、权限守卫
+    user/            # 用户资料、昵称联系方式
+    store/           # 多门店管理
+    seat/            # 座位配置、状态、二维码 token
+    package/         # 套餐（小时/3小时/全天）配置
+    coupon/          # 券发放、状态、核销、兑换
+    pattern/         # 图纸生成服务代理、图纸任务
+    quote/           # 报价服务（定价算法）
+    custom-order/    # 定制订单流转（含质检、物流、消息）
+    store-order/     # 到店订单、计时、结算
+    accessory-order/ # 配件 / 材料包订单
+    mall/            # 成品商城、材料包商品
+    inventory/       # 库存管理、预警、盘点
+    template/        # 模板库（AI 原创）
+    gallery/         # 晒图区
+    review-sync/     # 美团/抖音评论同步 + 审核（含手动录入降级）
+4/57
+===== PAGE 5 =====
+2. 用户端小程序功能结构
+    pricing-config/  # 定价参数配置（支持多门店）
+    payment/         # 微信支付统一下单、回调、退款
+    stats/           # 流水看板、报表
+    staff/           # 员工账号与角色权限
+    audit/           # 操作审计日志
+    notify/          # 微信订阅消息推送
+    order-message/   # 【v1.3】订单内消息系统
+    quality-check/   # 【v1.3】质检与确认收货
+    member/          # 【v1.3】会员体系、积分、等级
+    iot/              # 【v1.2 二期可选】IoT 座位指示灯模块
+    refund-apply/     # 【v1.2】用户退款申请工单模块
+    shift/            # 【v1.2】交接班模块
+    finance-check/    # 【v1.2】财务对账中心模块
+  common/            # 装饰器、拦截器、异常、Redis 封装、分页、审计中间件
+    decorators/
+      audit-alert.decorator.ts   # 【v1.2】高危审计微信告警装饰器
+  config/            # 环境配置、可配置参数默认值
+  database/          # migration、entity
+text
+模块 页面 核心逻辑
+首页 轮播、快捷入口、热门作品
+进入定制/预约/模板/材料包/
+晒图/教程；支持按门店定位展
+示就近门店
+来图定制
+上传图片、参数设置、图纸预
+览、自动报价、确认下单
+调用图纸服务返回颗数/色数/
+色号用量，按定价算法实时报
+价，支付定金
+成品商城 分类列表、详情、加购、下单
+动漫/卡通/风景/节日/钥匙扣/
+装饰画等分类
+DIY 预约
+选套餐、选时间、选座位、付
+定金
+套餐：小时/3小时券/全天券，
+定金可退；服务端时间段冲突
+锁校验
+扫码计时 扫座位码、计时器展示
+小时正计时；3小时券倒计时
+转正计时；全天券显示"全天
+券"并正计时
+5/57
+===== PAGE 6 =====
+用户端小程序路由表
+模块 页面 核心逻辑
+我的券包 券列表、核销码、兑换
+时长券 / 配件券 / 材料包券 /
+折扣券，可用券兑换钥匙扣等
+配件
+订单中心 定制订单、到店订单
+定制状态流（含质检/物流/确
+认收货）+ 到店状态流；离店
+统一账单；定制订单展示商家
+拒绝理由；可发起退款申请
+订单内消息 消息列表、聊天界面
+按订单维度与店员双向沟通
+（文字+图片），未读红点角
+标
+模板库 AI 原创模板、分类、收藏
+仅 AI 生成 / 自有版权图，标注
+可商用
+晒图区 作品墙、评论、点赞
+用户晒图 + 后台审核后的美团/
+抖音精选评论
+教程 图文 + 视频 新手入门 / 进阶 / 熨烫指南
+会员中心
+等级卡片、积分明细、权益说
+明
+等级进度、积分流水、积分抵
+扣入口、生日月提示
+个人中心
+昵称、联系方式、期望交付时
+间
+定制订单必填信息
+退款模块
+退款申请、退款列表、退款详
+情
+用户提交退款申请，查看工单
+处理状态
+pages/index/index                 首页
+pages/custom/upload               来图定制-上传图
+pages/custom/preview              来图定制-图纸预览与报价
+pages/custom/confirm              来图定制-确认下单与定金
+pages/mall/list                   成品商城列表
+pages/mall/detail                 商品详情
+pages/mall/cart                   购物车
+pages/mall/checkout               下单结算
+pages/store/booking               DIY 预约（套餐/时间/座位）
+6/57
+===== PAGE 7 =====
+3. 店员端小程序功能结构
+pages/store/scan-timing           扫码计时器
+pages/coupon/list                 我的券包
+pages/coupon/redeem               券兑换（配件/时长/材料包）
+pages/order/list                  订单中心
+pages/order/detail                订单详情
+pages/order/message               订单内消息列表
+pages/order/tracking              物流详情
+pages/member/center               我的会员
+pages/member/points-log           积分明细
+pages/template/list               模板库
+pages/template/detail             模板详情
+pages/gallery/list                晒图墙
+pages/gallery/publish             发布晒图
+pages/tutorial/list               教程列表
+pages/tutorial/detail             教程详情
+pages/user/profile                个人中心
+pages/user/contact                定制联系信息
+pages/refund/apply                发起退款申请
+pages/refund/list                 我的退款工单列表
+pages/refund/detail               退款工单详情
+text
+模块 页面 核心逻辑
+座位看板 座位列表/网格
+状态：空闲 / 已预约 / 使用中
+(计时中) / 待结算；IoT 设备离
+线状态小图标提示；可标记逃
+单订单
+扫码开台 扫座位码 / 顾客订单码
+绑定座位并开始计时，或为已
+预约顾客签到开台
+计时控制 单座位计时详情
+开始 / 暂停 / 继续 / 结束；显
+示套餐类型与剩余/已用时长
+券核销 输入或扫码核销
+核销到店券、美团券、抖音
+券，写核销流水，支持撤销
+加购配件 当前座位加单
+钥匙扣 / 冰箱贴 / 材料包 / 特
+殊烫，计入统一账单
+统一结算 最终账单
+7/57
+===== PAGE 8 =====
+店员端角色能力矩阵
+模块 页面 核心逻辑
+计时费 + 配件 + 特殊烫 - 券抵
+扣 - 团购抵扣 - 会员折扣 - 积
+分抵扣，微信支付或现金登记
+流水查看 今日收入
+按定制 / 到店 / 材料包 / 配件
+拆分，未结算清单
+库存快查 库存概览
+查看当前门店豆子/配件/材料
+包库存，低库存预警标红
+消息中心 按订单分组的消息列表
+显示未读数、最后消息、时
+间；点击进入订单消息详情
+质检提交 质检页面
+展示订单图纸+成品参考图；
+拍照区；通过/不通过；不通过
+选原因和回退目标
+发货录入 发货页面
+选择快递公司（常用列表+自
+定义）、输入物流单号、确认
+发货
+交接班 交接班表单
+交班填写当班营收、待结算订
+单、备注；接班人确认
+退款工单 退款申请列表
+店长角色可见，审核用户退款
+申请：同意/拒绝填写理由
+权限控制 角色能力矩阵
+普通店员不可改价、不可删
+单；店长可撤销结算
+能力 普通店员 店长
+开台 / 计时控制 是 是
+券核销 是 是
+加购配件 是 是
+统一结算 是 是
+撤销已结算订单 否 是
+8/57
+===== PAGE 9 =====
+4. PC 管理后台功能结构
+能力 普通店员 店长
+修改定价 / 套餐 / 座位 否 是（PC 端）
+查看完整流水 / 导出报表 仅当日简版 是
+库存盘点录入 否 是
+库存预警查看 是 是
+手动录入评论（降级） 否 是
+标记逃单订单 否 是
+交接班提交确认 否 是
+审核退款工单 否 是
+发送/查看订单消息 是 是
+提交质检结果 是 是
+发货录入 否 是
+模块 核心功能
+门店管理
+新增/编辑门店信息、地址、营业时间、联系方
+式；各门店配置独立隔离
+座位配置
+新增/编辑座位、区域、生成座位二维码 token、
+启用停用
+套餐配置
+小时/3小时/全天套餐名称、价格、时长、描
+述、上下架
+定价配置
+按门店设置豆子单价、手工单价（分档阈值）、
+特殊烫费、配件费、运费、包邮阈值；配置库存
+扣减策略开关；配置积分与会员参数
+成品/材料包管理 商品、分类、库存、价格、上下架
+库存管理
+9/57
+===== PAGE 10 =====
+模块 核心功能
+按门店管理原材料（豆子、配件、包装材料）库
+存；库存变动流水查询；库存预警阈值配置与告
+警通知
+模板管理
+上传 AI 原创/自有版权图、分类、免费/付费、批
+量导入
+评论同步
+美团/抖音拉取记录、人工筛选、审核通过才展
+示；手动录入降级入口
+订单管理
+定制订单进度流转（含质检/物流/确认收货）；
+商家拒绝定制订单填写拒绝理由；到店订单查
+询、异常处理、逃单记录查看；订单沟通记录
+（只读）；批量发货
+会员管理
+会员列表（搜索/筛等级/分页）；查看单个会员
+积分流水；手动调整积分（高危操作，二次确认
++ 审计 + 微信告警）；等级配置（阈值、折扣
+率、权益描述）
+消息管理
+全门店消息列表，按订单/发送方/时间筛选；店
+长可逻辑删除违规消息
+流水报表 收入构成、座位利用率、套餐占比、导出
+经营分析仪表盘
+翻台率（每座日均接单数）、客单价趋势、定制
+vs 到店收入占比、高峰时段分布、热销颜色/配
+件 TOP；会员分析（各等级占比、复购率、积
+分消耗率、生日月活动效果）
+员工账号与权限 账号、角色、门店归属
+审计日志
+查看全量操作日志，按操作人/类型/时间/目标
+对象筛选，高危操作高亮展示，支持导出；高危
+微信告警配置，标记已推送状态
+核销记录 美团/抖音/自有券核销流水与撤销记录
+运营配置 轮播图、新手券、活动（二期拼团/秒杀预留）
+图纸故障降级入口
+图纸生成失败订单，后台手动录入豆子颗数、色
+数、颜色用量；操作审计留痕
+10/57
+===== PAGE 11 =====
+5. 数据库设计（完整建表 SQL）
+说明：所有 *_json 字段使用 JSON 类型；所有表默认 utf8mb4。
+模块 核心功能
+交接班管理
+交接班记录查询、导出；当班营收、待结算订
+单、备注查看
+财务对账中心
+每日自动拉微信商户账单；系统与微信流水自动
+比对；差异记录管理、标记处理状态、导出报表
+IoT 设备管理（二期可选）
+座位-硬件 SN 绑定、设备在线状态查看、手动
+调试灯光指令，全局开关开启/关闭 IoT 模块；
+设备故障告警列表；灯光指令写入 audit_log
+-- ============================================================
+-- 用户
+-- ============================================================
+CREATE TABLE `user` (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  openid VARCHAR(64) NOT NULL UNIQUE,
+  unionid VARCHAR(64) DEFAULT NULL,
+  nickname VARCHAR(64) DEFAULT '',
+  phone VARCHAR(20) DEFAULT '',
+  avatar VARCHAR(512) DEFAULT '',
+  member_level TINYINT DEFAULT 0 COMMENT '会员等级 0-3',
+  points INT DEFAULT 0 COMMENT '当前可用积分',
+  cumulative_points INT DEFAULT 0 COMMENT '累计积分（用于等级判定，只增不减）',
+  level_updated_at DATETIME DEFAULT NULL COMMENT '等级最后计算时间',
+  balance DECIMAL(10,2) DEFAULT 0.00,
+  birthday DATE DEFAULT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+CURRENT_TIMESTAMP,
+  deleted_at DATETIME DEFAULT NULL
+);
+-- ============================================================
+-- 门店
+-- ============================================================
+11/57
+===== PAGE 12 =====
+CREATE TABLE store (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(128) NOT NULL COMMENT '门店名称',
+  address VARCHAR(512) DEFAULT '' COMMENT '门店地址',
+  contact_phone VARCHAR(20) DEFAULT '' COMMENT '联系电话',
+  latitude DECIMAL(10,7) DEFAULT NULL COMMENT '纬度（用于用户端就近推荐）',
+  longitude DECIMAL(10,7) DEFAULT NULL COMMENT '经度',
+  business_hours VARCHAR(128) DEFAULT '' COMMENT '营业时间描述，如 10:00-22:00',
+  status ENUM('ACTIVE','INACTIVE') DEFAULT 'ACTIVE' COMMENT '门店状态',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+CURRENT_TIMESTAMP
+);
+-- ============================================================
+-- 员工账号
+-- ============================================================
+CREATE TABLE staff (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(64) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  real_name VARCHAR(64) DEFAULT '',
+  role ENUM('STAFF','MANAGER','OWNER') NOT NULL DEFAULT 'STAFF',
+  store_id BIGINT DEFAULT NULL,
+  enabled TINYINT DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+-- ============================================================
+-- 座位
+-- ============================================================
+CREATE TABLE seat (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_id BIGINT DEFAULT NULL,
+  seat_no VARCHAR(16) NOT NULL,
+  area VARCHAR(32) DEFAULT '',
+  status ENUM('IDLE','RESERVED','TIMING','PENDING_SETTLE') DEFAULT 'IDLE',
+  qrcode_token VARCHAR(64) NOT NULL UNIQUE,
+  enabled TINYINT DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+UNIQUE KEY uk_store_seat (store_id, seat_no),
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+-- ============================================================
+12/57
+===== PAGE 13 =====
+-- 套餐
+-- ============================================================
+CREATE TABLE package (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_id BIGINT DEFAULT NULL COMMENT '所属门店，NULL 表示全局通用',
+  name VARCHAR(64) NOT NULL,
+  type ENUM('HOURLY','THREE_HOUR','ALL_DAY') NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  duration_minutes INT DEFAULT NULL,
+  hourly_unit_price DECIMAL(10,2) DEFAULT NULL,
+  deposit DECIMAL(10,2) DEFAULT 1.00,
+  description VARCHAR(255) DEFAULT '',
+  enabled TINYINT DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+-- ============================================================
+-- 券
+-- ============================================================
+CREATE TABLE coupon (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  code VARCHAR(64) NOT NULL UNIQUE,
+  user_id BIGINT DEFAULT NULL,
+  package_id BIGINT DEFAULT NULL,
+  coupon_type ENUM('DURATION','ACCESSORY','MATERIAL','DISCOUNT') NOT NULL,
+  source ENUM('BUY','GIFT','MEITUAN','DOUYIN','SYSTEM') NOT NULL,
+  face_value DECIMAL(10,2) DEFAULT NULL,
+  discount_rate DECIMAL(5,2) DEFAULT NULL,
+  accessory_ref VARCHAR(64) DEFAULT NULL,
+  status ENUM('UNUSED','USED','EXPIRED','REVOKED') DEFAULT 'UNUSED',
+  used_count INT DEFAULT 0,
+  total_count INT DEFAULT 1,
+  expire_at DATETIME DEFAULT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+-- ============================================================
+-- 券核销流水
+-- ============================================================
+CREATE TABLE coupon_redeem_log (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  coupon_id BIGINT NOT NULL,
+  order_id BIGINT DEFAULT NULL,
+  store_order_id BIGINT DEFAULT NULL,
+  admin_id BIGINT NOT NULL,
+13/57
+===== PAGE 14 =====
+  action ENUM('USE','REVOKE') NOT NULL,
+  amount DECIMAL(10,2) DEFAULT 0.00,
+  remark VARCHAR(255) DEFAULT '',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+-- ============================================================
+-- 定价配置（按门店差异化 + 会员积分配置）
+-- ============================================================
+CREATE TABLE pricing_config (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_id BIGINT DEFAULT NULL COMMENT '所属门店，NULL 表示全局默认',
+  bean_unit_price DECIMAL(10,4) NOT NULL DEFAULT 0.0015,
+  labor_price_normal DECIMAL(10,4) NOT NULL DEFAULT 0.014,
+  labor_price_complex DECIMAL(10,4) NOT NULL DEFAULT 0.020,
+  color_threshold INT NOT NULL DEFAULT 12,
+  iron_glitter_min DECIMAL(10,2) DEFAULT 2.00,
+  iron_glitter_max DECIMAL(10,2) DEFAULT 5.00,
+  accessory_keychain DECIMAL(10,2) DEFAULT 1.00,
+  accessory_fridge_magnet DECIMAL(10,2) DEFAULT 0.50,
+  accessory_frame DECIMAL(10,2) DEFAULT 0.00,
+  accessory_no_hole_double DECIMAL(10,2) DEFAULT 1.00,
+  shipping_fee DECIMAL(10,2) DEFAULT 6.00,
+  free_shipping_threshold DECIMAL(10,2) DEFAULT 60.00,
+  cancel_free_hours INT DEFAULT 2 COMMENT '预约开始前 N 小时取消可退定金',
+  deposit_ratio DECIMAL(5,2) DEFAULT 0.50 COMMENT '定制订单定金比例',
+  inventory_deduct_strategy ENUM('ON_ORDER_CONFIRM','ON_PRODUCE_START') 
+DEFAULT 'ON_ORDER_CONFIRM' COMMENT '库存扣减策略',
+  points_per_yuan INT DEFAULT 1 COMMENT '每消费1元获得N积分',
+  points_to_yuan_rate INT DEFAULT 100 COMMENT 'N积分抵扣1元（默认100积分=1
+元）',
+  points_deduct_max_ratio DECIMAL(3,2) DEFAULT 0.30 COMMENT '积分最多抵扣订单
+金额的比例（默认30%）',
+  birthday_double_points TINYINT DEFAULT 1 COMMENT '生日月双倍积分开关',
+  points_expire_months INT DEFAULT 12 COMMENT '积分过期月数',
+  auto_confirm_days INT DEFAULT 7 COMMENT '发货后N天用户未确认收货则自动确认',
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+CURRENT_TIMESTAMP,
+UNIQUE KEY uk_store_pricing (store_id),
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+-- ============================================================
+-- 定制订单（含 v1.3 质检、物流、消息字段）
+-- ============================================================
+CREATE TABLE custom_order (
+14/57
+===== PAGE 15 =====
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_no VARCHAR(32) NOT NULL UNIQUE,
+  user_id BIGINT NOT NULL,
+  store_id BIGINT DEFAULT NULL,
+  image_url VARCHAR(512) NOT NULL,
+  pattern_url VARCHAR(512) DEFAULT NULL,
+  width INT NOT NULL,
+  height INT NOT NULL,
+  total_beans INT NOT NULL,
+  color_count INT NOT NULL,
+  colors_json JSON,
+  style ENUM('CARTOON','REALISTIC') DEFAULT 'CARTOON',
+  difficulty ENUM('EASY','NORMAL','HARD') DEFAULT 'NORMAL',
+  iron_type ENUM('NORMAL','GLITTER','OTHER') DEFAULT 'NORMAL',
+  price_bean DECIMAL(10,2) NOT NULL DEFAULT 0,
+  price_labor DECIMAL(10,2) NOT NULL DEFAULT 0,
+  price_iron DECIMAL(10,2) NOT NULL DEFAULT 0,
+  price_accessory DECIMAL(10,2) NOT NULL DEFAULT 0,
+  price_shipping DECIMAL(10,2) NOT NULL DEFAULT 0,
+  total_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+  deposit DECIMAL(10,2) NOT NULL DEFAULT 0,
+  deposit_paid TINYINT DEFAULT 0,
+  points_deduct DECIMAL(10,2) DEFAULT 0.00 COMMENT '积分抵扣金额',
+  points_used INT DEFAULT 0 COMMENT '使用积分数',
+  member_discount DECIMAL(10,2) DEFAULT 0.00 COMMENT '会员折扣减免金额',
+  accessories_json JSON,
+  nickname VARCHAR(64) DEFAULT '',
+  contact VARCHAR(64) DEFAULT '',
+  expected_time DATETIME DEFAULT NULL,
+  address VARCHAR(512) DEFAULT '',
+  remark VARCHAR(512) DEFAULT '',
+  assigned_staff_id BIGINT DEFAULT NULL COMMENT '指派制作的店员（消息归属人）',
+  last_message_at DATETIME DEFAULT NULL COMMENT '最后一条消息时间（排序用）',
+  status ENUM(
+'PENDING','ACCEPTED','COLORING','ASSEMBLING',
+'IRONING','QC_PENDING','QC_PASSED','DONE',
+'SHIPPED','DELIVERED','CONFIRMED','CANCELLED'
+  ) DEFAULT 'PENDING',
+  reject_reason VARCHAR(512) DEFAULT NULL COMMENT '商家拒绝定制订单理由',
+  reject_at DATETIME DEFAULT NULL COMMENT '拒绝时间',
+  tracking_company VARCHAR(64) DEFAULT NULL COMMENT '快递公司',
+  tracking_no VARCHAR(64) DEFAULT NULL COMMENT '物流单号',
+  shipped_at DATETIME DEFAULT NULL COMMENT '发货时间',
+  delivered_at DATETIME DEFAULT NULL COMMENT '物流签收时间',
+  confirmed_at DATETIME DEFAULT NULL COMMENT '用户确认收货时间',
+  auto_confirmed TINYINT DEFAULT 0 COMMENT '是否超期自动确认',
+15/57
+===== PAGE 16 =====
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+CURRENT_TIMESTAMP,
+  INDEX idx_assigned (assigned_staff_id),
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+-- ============================================================
+-- 到店订单（含 v1.3 积分抵扣、会员折扣、消息字段）
+-- ============================================================
+CREATE TABLE store_order (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_no VARCHAR(32) NOT NULL UNIQUE,
+  user_id BIGINT NOT NULL,
+  seat_id BIGINT NOT NULL,
+  store_id BIGINT DEFAULT NULL,
+  package_id BIGINT NOT NULL,
+  coupon_id BIGINT DEFAULT NULL,
+  booking_time DATETIME DEFAULT NULL,
+  book_start_time DATETIME DEFAULT NULL COMMENT '预约开始时间',
+  book_end_time DATETIME DEFAULT NULL COMMENT '预约结束时间',
+  start_time DATETIME DEFAULT NULL,
+  end_time DATETIME DEFAULT NULL,
+  pause_seconds INT DEFAULT 0,
+  timing_type ENUM('HOURLY','THREE_HOUR','ALL_DAY') NOT NULL,
+  coupon_countdown_end DATETIME DEFAULT NULL,
+  overtime_minutes INT DEFAULT 0,
+  timing_fee DECIMAL(10,2) DEFAULT 0.00,
+  extra_fee DECIMAL(10,2) DEFAULT 0.00,
+  accessory_fee DECIMAL(10,2) DEFAULT 0.00,
+  coupon_deduction DECIMAL(10,2) DEFAULT 0.00,
+  thirdparty_deduction DECIMAL(10,2) DEFAULT 0.00,
+  deposit DECIMAL(10,2) DEFAULT 0.00,
+  points_deduct DECIMAL(10,2) DEFAULT 0.00 COMMENT '积分抵扣金额',
+  points_used INT DEFAULT 0 COMMENT '使用积分数',
+  member_discount DECIMAL(10,2) DEFAULT 0.00 COMMENT '会员折扣减免金额',
+  total_fee DECIMAL(10,2) DEFAULT 0.00,
+  settled_fee DECIMAL(10,2) DEFAULT 0.00,
+  is_escape TINYINT DEFAULT 0 COMMENT '是否逃单：0否，1是',
+  status 
+ENUM('RESERVED','CHECKED_IN','TIMING','PAUSED','COMPLETED','SETTLED','CANCELLED')
+DEFAULT 'RESERVED',
+  settled_at DATETIME DEFAULT NULL,
+  settled_by_staff_id BIGINT DEFAULT NULL COMMENT '结算操作人',
+  last_message_at DATETIME DEFAULT NULL COMMENT '最后消息时间',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+16/57
+===== PAGE 17 =====
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+CURRENT_TIMESTAMP,
+FOREIGN KEY (store_id) REFERENCES store(id),
+FOREIGN KEY (settled_by_staff_id) REFERENCES staff(id)
+);
+-- ============================================================
+-- 到店结算明细
+-- ============================================================
+CREATE TABLE store_order_item (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_order_id BIGINT NOT NULL,
+  item_type 
+ENUM('TIMING','IRON','ACCESSORY','MATERIAL','COUPON','THIRDPARTY','DEPOSIT','MEMBER_DISCOUNT','POINTS_DEDUCT') 
+NOT NULL,
+  ref_id BIGINT DEFAULT NULL,
+  name VARCHAR(64) NOT NULL,
+  quantity INT DEFAULT 1,
+  amount DECIMAL(10,2) NOT NULL,
+  direction ENUM('CHARGE','DEDUCT') DEFAULT 'CHARGE',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+-- ============================================================
+-- 配件 / 材料包订单（含 v1.3 积分抵扣、会员折扣字段）
+-- ============================================================
+CREATE TABLE accessory_order (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_no VARCHAR(32) NOT NULL UNIQUE,
+  user_id BIGINT NOT NULL,
+  store_id BIGINT DEFAULT NULL,
+  scene ENUM('MALL','STORE_ADD','REDEEM') NOT NULL,
+  related_store_order_id BIGINT DEFAULT NULL,
+  items_json JSON NOT NULL,
+  total_price DECIMAL(10,2) NOT NULL,
+  points_deduct DECIMAL(10,2) DEFAULT 0.00,
+  points_used INT DEFAULT 0,
+  member_discount DECIMAL(10,2) DEFAULT 0.00,
+  pay_status ENUM('UNPAID','PAID','REFUND') DEFAULT 'UNPAID',
+  status ENUM('CREATED','PAID','DONE','CANCELLED') DEFAULT 'CREATED',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+-- ============================================================
+-- 商品（成品 / 材料包 / 配件 SKU）
+17/57
+===== PAGE 18 =====
+-- ============================================================
+CREATE TABLE product (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  sku VARCHAR(64) NOT NULL UNIQUE,
+  store_id BIGINT DEFAULT NULL COMMENT '所属门店，NULL 表示全门店通用',
+  category ENUM('FINISHED','MATERIAL','ACCESSORY') NOT NULL,
+  title VARCHAR(128) NOT NULL,
+  cover VARCHAR(512) DEFAULT '',
+  images JSON,
+  tags VARCHAR(255) DEFAULT '',
+  price DECIMAL(10,2) NOT NULL,
+  stock INT DEFAULT 0,
+  bean_count INT DEFAULT NULL,
+  description TEXT,
+  enabled TINYINT DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+-- ============================================================
+-- 库存表
+-- ============================================================
+CREATE TABLE inventory (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_id BIGINT NOT NULL COMMENT '所属门店',
+  item_type ENUM('BEAN','ACCESSORY','PACKAGING','OTHER') NOT NULL COMMENT '物料
+类型',
+  item_name VARCHAR(128) NOT NULL COMMENT '物料名称，如"白色拼豆""钥匙扣配件"',
+  item_code VARCHAR(64) NOT NULL COMMENT '物料编码（可与 SKU 关联）',
+  quantity INT NOT NULL DEFAULT 0 COMMENT '当前库存数量',
+  unit VARCHAR(16) DEFAULT '个' COMMENT '计量单位（个/包/袋/箱）',
+  alert_threshold INT NOT NULL DEFAULT 50 COMMENT '预警阈值，低于此值触发预警',
+  last_restock_at DATETIME DEFAULT NULL COMMENT '最近一次补货时间',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+CURRENT_TIMESTAMP,
+UNIQUE KEY uk_store_item (store_id, item_code),
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+-- ============================================================
+-- 库存变动流水
+-- ============================================================
+CREATE TABLE inventory_log (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_id BIGINT NOT NULL,
+18/57
+===== PAGE 19 =====
+  inventory_id BIGINT NOT NULL COMMENT '关联 inventory.id',
+  change_type ENUM('IN','OUT','ADJUST','RETURN') NOT NULL COMMENT '入库/出库/盘点
+调整/退货入库',
+  quantity INT NOT NULL COMMENT '变动数量（正数）',
+  direction TINYINT NOT NULL COMMENT '1=增加 -1=减少',
+  before_quantity INT NOT NULL COMMENT '变动前库存',
+  after_quantity INT NOT NULL COMMENT '变动后库存',
+  ref_order_no VARCHAR(32) DEFAULT NULL COMMENT '关联订单号（如有）',
+  operator_id BIGINT NOT NULL COMMENT '操作人（staff.id）',
+  remark VARCHAR(255) DEFAULT '' COMMENT '备注',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (store_id) REFERENCES store(id),
+FOREIGN KEY (inventory_id) REFERENCES inventory(id),
+FOREIGN KEY (operator_id) REFERENCES staff(id)
+);
+-- ============================================================
+-- 模板（仅 AI 生成 / 自有版权）
+-- ============================================================
+CREATE TABLE template (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  title VARCHAR(128) NOT NULL,
+  image_url VARCHAR(512) NOT NULL,
+  width INT DEFAULT NULL,
+  height INT DEFAULT NULL,
+  color_count INT DEFAULT NULL,
+  tags VARCHAR(255) DEFAULT '',
+  is_free TINYINT DEFAULT 1,
+  price DECIMAL(10,2) DEFAULT 0.00,
+  source ENUM('AI','SELF','IMPORTED') DEFAULT 'AI',
+  license_note VARCHAR(255) DEFAULT 'AI原创，可商用',
+  enabled TINYINT DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+-- ============================================================
+-- 晒图
+-- ============================================================
+CREATE TABLE gallery (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT DEFAULT NULL,
+  store_id BIGINT DEFAULT NULL COMMENT '所属门店',
+  images JSON NOT NULL,
+  content VARCHAR(1024) DEFAULT '',
+  source ENUM('USER','MEITUAN','DOUYIN','ADMIN') DEFAULT 'USER',
+  related_type ENUM('TEMPLATE','PRODUCT','NONE') DEFAULT 'NONE',
+19/57
+===== PAGE 20 =====
+  related_id BIGINT DEFAULT NULL,
+  like_count INT DEFAULT 0,
+  status ENUM('PENDING','APPROVED','REJECTED') DEFAULT 'PENDING',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+-- ============================================================
+-- 第三方评论同步（含手动录入降级）
+-- ============================================================
+CREATE TABLE review_sync (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_id BIGINT DEFAULT NULL COMMENT '所属门店',
+  platform ENUM('MEITUAN','DOUYIN','MANUAL') NOT NULL COMMENT 'MANUAL=手动录
+入',
+  platform_id VARCHAR(128) DEFAULT NULL COMMENT '手动录入时可为空',
+  nickname VARCHAR(64) DEFAULT '',
+  avatar VARCHAR(512) DEFAULT '',
+  content VARCHAR(2048) DEFAULT '',
+  rating INT DEFAULT NULL,
+  raw JSON,
+  synced TINYINT DEFAULT 0,
+  audit_status ENUM('PENDING','APPROVED','HIDDEN') DEFAULT 'PENDING',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+UNIQUE KEY uk_platform_id (platform, platform_id)
+);
+-- ============================================================
+-- 交易流水
+-- ============================================================
+CREATE TABLE payment_record (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  out_trade_no VARCHAR(64) NOT NULL UNIQUE,
+  transaction_id VARCHAR(64) DEFAULT NULL,
+  biz_type 
+ENUM('CUSTOM_DEPOSIT','CUSTOM_BALANCE','STORE_SETTLE','ACCESSORY','MALL','COUPON_BUY','REFUND') 
+NOT NULL,
+  biz_id BIGINT NOT NULL,
+  user_id BIGINT DEFAULT NULL,
+  store_id BIGINT DEFAULT NULL COMMENT '所属门店',
+  amount DECIMAL(10,2) NOT NULL,
+  status ENUM('UNPAID','PAID','REFUND','CLOSED') DEFAULT 'UNPAID',
+  paid_at DATETIME DEFAULT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+20/57
+===== PAGE 21 =====
+-- ============================================================
+-- 操作审计日志
+-- ============================================================
+CREATE TABLE audit_log (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_id BIGINT DEFAULT NULL COMMENT '所属门店',
+  operator_type ENUM('STAFF','ADMIN','SYSTEM') NOT NULL COMMENT '操作人类型',
+  operator_id BIGINT NOT NULL COMMENT '操作人 ID（staff.id 或系统 0）',
+  operator_name VARCHAR(64) DEFAULT '' COMMENT '操作人姓名（冗余，便于查询）',
+  action VARCHAR(64) NOT NULL COMMENT '操作类型',
+  target_type VARCHAR(64) DEFAULT '' COMMENT '操作对象类型',
+  target_id BIGINT DEFAULT NULL COMMENT '操作对象 ID',
+  before_value JSON DEFAULT NULL COMMENT '变更前快照',
+  after_value JSON DEFAULT NULL COMMENT '变更后快照',
+  ip_address VARCHAR(45) DEFAULT '' COMMENT '操作 IP',
+  user_agent VARCHAR(512) DEFAULT '' COMMENT '设备信息',
+  remark VARCHAR(512) DEFAULT '' COMMENT '备注说明',
+  is_wx_alert_sent TINYINT DEFAULT 0 COMMENT '高危操作是否已推送微信告警',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_operator (operator_type, operator_id),
+  INDEX idx_action (action),
+  INDEX idx_target (target_type, target_id),
+  INDEX idx_created (created_at),
+  INDEX idx_store (store_id)
+);
+-- ============================================================
+-- 【v1.3】订单内消息表
+-- ============================================================
+CREATE TABLE `order_message` (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  biz_type ENUM('CUSTOM_ORDER','STORE_ORDER') NOT NULL COMMENT '订单类型',
+  order_id BIGINT NOT NULL COMMENT '关联订单ID',
+  store_id BIGINT DEFAULT NULL COMMENT '所属门店（便于按门店查询）',
+  sender_type ENUM('USER','STAFF') NOT NULL COMMENT '发送方类型',
+  sender_id BIGINT NOT NULL COMMENT '发送者ID（user.id 或 staff.id）',
+  sender_name VARCHAR(64) DEFAULT '' COMMENT '发送者名称（冗余）',
+  message_type ENUM('TEXT','IMAGE','SYSTEM') NOT NULL DEFAULT 'TEXT' COMMENT '消
+息类型',
+  content TEXT NOT NULL COMMENT '文字内容或图片URL(JSON数组)',
+  images_json JSON DEFAULT NULL COMMENT '图片URL列表(仅IMAGE类型)',
+  is_read_by_user TINYINT DEFAULT 0 COMMENT '用户是否已读',
+  is_read_by_staff TINYINT DEFAULT 0 COMMENT '店员是否已读',
+  is_deleted TINYINT DEFAULT 0 COMMENT '逻辑删除（违规处理）',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+21/57
+===== PAGE 22 =====
+  INDEX idx_order (biz_type, order_id),
+  INDEX idx_sender (sender_type, sender_id),
+  INDEX idx_store (store_id),
+  INDEX idx_created (created_at)
+) COMMENT='订单内消息表';
+-- Redis Key: order:msg:unread:{biz_type}:{order_id}
+--   HASH { user_unread: N, staff_unread: N }
+-- 发消息时对收方 unread +1，读消息时清零
+-- 另维护全局未读: user:msg:total_unread:{user_id} (STRING, 客户端做角标)
+-- ============================================================
+-- 【v1.3】质检记录表
+-- ============================================================
+CREATE TABLE `custom_order_qc` (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  custom_order_id BIGINT NOT NULL COMMENT '关联定制订单ID',
+  store_id BIGINT DEFAULT NULL,
+  qc_staff_id BIGINT NOT NULL COMMENT '质检操作人（staff.id）',
+  qc_staff_name VARCHAR(64) DEFAULT '',
+result ENUM('PASS','FAIL') NOT NULL COMMENT '质检结果',
+  fail_reason VARCHAR(512) DEFAULT NULL COMMENT '不通过原因（FAIL时必填）',
+  rework_target ENUM('COLORING','ASSEMBLING','IRONING') DEFAULT NULL COMMENT 
+'回退目标状态（FAIL时必填）',
+  qc_images JSON NOT NULL COMMENT '质检照片URL数组（水印图）',
+  remark VARCHAR(512) DEFAULT '',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_order (custom_order_id),
+  INDEX idx_staff (qc_staff_id),
+FOREIGN KEY (custom_order_id) REFERENCES custom_order(id),
+FOREIGN KEY (store_id) REFERENCES store(id),
+FOREIGN KEY (qc_staff_id) REFERENCES staff(id)
+) COMMENT='定制订单质检记录';
+-- ============================================================
+-- 【v1.3】会员等级配置表
+-- ============================================================
+CREATE TABLE `member_level_config` (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  level TINYINT NOT NULL UNIQUE COMMENT '等级编号 0-3',
+  name VARCHAR(32) NOT NULL COMMENT '等级名称',
+  min_cumulative_points INT NOT NULL COMMENT '累计积分达到此值自动升级',
+  discount_rate DECIMAL(3,2) NOT NULL DEFAULT 1.00 COMMENT '折扣率 1.00=无折扣 
+0.95=95折',
+  benefits_json JSON DEFAULT NULL COMMENT '权益描述（展示用）',
+  enabled TINYINT DEFAULT 1,
+22/57
+===== PAGE 23 =====
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+) COMMENT='会员等级配置';
+-- 默认数据
+INSERT INTO member_level_config (level, name, min_cumulative_points, 
+discount_rate, benefits_json) VALUES
+(0, '普通会员', 0, 1.00, '[]'),
+(1, '银卡会员', 500, 0.95, '["95折优惠"]'),
+(2, '金卡会员', 2000, 0.90, '["9折优惠","生日月双倍积分"]'),
+(3, '钻石会员', 5000, 0.85, '["85折优惠","生日月双倍积分","免费熨烫一次"]');
+-- ============================================================
+-- 【v1.3】积分流水表
+-- ============================================================
+CREATE TABLE `point_log` (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  user_id BIGINT NOT NULL,
+  store_id BIGINT DEFAULT NULL,
+  change_type ENUM('EARN','SPEND','EXPIRE','ADJUST') NOT NULL COMMENT '赚取/消费/
+过期/手动调整',
+  points INT NOT NULL COMMENT '变动数量（正数）',
+  direction TINYINT NOT NULL COMMENT '1=增加 -1=减少',
+  before_points INT NOT NULL COMMENT '变动前积分',
+  after_points INT NOT NULL COMMENT '变动后积分',
+  ref_biz_type VARCHAR(32) DEFAULT NULL COMMENT '来源业务类型: CUSTOM_ORDER/
+STORE_ORDER/ACCESSORY_ORDER/MALL/BIRTHDAY/MANUAL',
+  ref_order_no VARCHAR(32) DEFAULT NULL COMMENT '关联订单号',
+  expire_at DATETIME DEFAULT NULL COMMENT '该笔积分过期时间（EARN时写入）',
+  remark VARCHAR(255) DEFAULT '',
+  operator_id BIGINT DEFAULT NULL COMMENT '操作人（ADJUST时必填）',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_user (user_id),
+  INDEX idx_expire (expire_at),
+  INDEX idx_change_type (change_type),
+FOREIGN KEY (user_id) REFERENCES user(id),
+FOREIGN KEY (store_id) REFERENCES store(id)
+) COMMENT='积分变动流水';
+-- ============================================================
+-- IoT 座位指示灯设备绑定表（二期可选增值模块）
+-- ============================================================
+CREATE TABLE iot_seat_device (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_id BIGINT NOT NULL COMMENT '所属门店',
+  seat_id BIGINT NOT NULL COMMENT '绑定的座位ID，关联 seat.id',
+  device_sn VARCHAR(64) NOT NULL UNIQUE COMMENT 'esp32 设备序列号',
+23/57
+===== PAGE 24 =====
+  device_name VARCHAR(64) DEFAULT '' COMMENT '设备别名',
+  status ENUM('ONLINE','OFFLINE','FAULT') DEFAULT 'OFFLINE' COMMENT '设备在线状态',
+  last_online_at DATETIME DEFAULT NULL COMMENT '最后上报心跳时间',
+  last_light_command JSON DEFAULT NULL COMMENT '最后下发灯光指令快照',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+CURRENT_TIMESTAMP,
+UNIQUE KEY uk_seat_device (seat_id),
+UNIQUE KEY uk_device_sn (device_sn),
+FOREIGN KEY (seat_id) REFERENCES seat(id),
+FOREIGN KEY (store_id) REFERENCES store(id)
+);
+-- ============================================================
+-- 用户退款申请表
+-- ============================================================
+CREATE TABLE user_refund_apply (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  apply_no VARCHAR(32) NOT NULL UNIQUE,
+  user_id BIGINT NOT NULL,
+  store_id BIGINT DEFAULT NULL,
+  biz_type ENUM('CUSTOM_ORDER','STORE_ORDER','ACCESSORY_ORDER') NOT NULL,
+  biz_id BIGINT NOT NULL COMMENT '关联业务订单ID',
+  apply_amount DECIMAL(10,2) NOT NULL COMMENT '申请退款金额',
+  apply_reason VARCHAR(512) DEFAULT '' COMMENT '用户退款理由',
+  status ENUM('PENDING','AGREE','REJECTED','FINISHED') DEFAULT 'PENDING',
+  reject_reason VARCHAR(512) DEFAULT '' COMMENT '商家拒绝退款理由',
+  operator_staff_id BIGINT DEFAULT NULL COMMENT '处理退款的店长/管理员',
+  payment_record_id BIGINT DEFAULT NULL COMMENT '关联退款支付记录',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+CURRENT_TIMESTAMP
+);
+-- ============================================================
+-- 门店交接班记录表
+-- ============================================================
+CREATE TABLE staff_shift (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_id BIGINT NOT NULL,
+  shift_staff_id BIGINT NOT NULL COMMENT '交班店员ID',
+  receive_staff_id BIGINT DEFAULT NULL COMMENT '接班店员ID',
+  shift_start DATETIME NOT NULL COMMENT '当班开始时间',
+  shift_end DATETIME DEFAULT NULL COMMENT '交班结束时间',
+  cash_amount DECIMAL(10,2) DEFAULT 0.00 COMMENT '当班现金实收',
+  wx_amount DECIMAL(10,2) DEFAULT 0.00 COMMENT '当班微信实收',
+24/57
+===== PAGE 25 =====
+  un_settle_count INT DEFAULT 0 COMMENT '待结算订单数量',
+  remark VARCHAR(1024) DEFAULT '' COMMENT '交接班备注（库存异常、设备异常、逃单
+记录）',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+CURRENT_TIMESTAMP,
+FOREIGN KEY (store_id) REFERENCES store(id),
+FOREIGN KEY (shift_staff_id) REFERENCES staff(id),
+FOREIGN KEY (receive_staff_id) REFERENCES staff(id)
+);
+-- ============================================================
+-- 逃单记录（到店订单标记逃单）
+-- ============================================================
+CREATE TABLE store_order_escape_record (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_order_id BIGINT NOT NULL UNIQUE,
+  store_id BIGINT NOT NULL,
+  staff_id BIGINT NOT NULL COMMENT '标记逃单操作人',
+  escape_time DATETIME NOT NULL COMMENT '发现逃单时间',
+  escape_fee DECIMAL(10,2) NOT NULL COMMENT '应逃未付金额',
+  remark VARCHAR(512) DEFAULT '' COMMENT '逃单备注信息',
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+FOREIGN KEY (store_order_id) REFERENCES store_order(id),
+FOREIGN KEY (store_id) REFERENCES store(id),
+FOREIGN KEY (staff_id) REFERENCES staff(id)
+);
+-- ============================================================
+-- 财务对账差异记录表
+-- ============================================================
+CREATE TABLE finance_check_diff (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  store_id BIGINT DEFAULT NULL,
+  check_date DATE NOT NULL COMMENT '对账日期',
+  out_trade_no VARCHAR(64) DEFAULT NULL COMMENT '微信商户单号',
+  transaction_id VARCHAR(64) DEFAULT NULL COMMENT '微信交易号',
+  diff_type ENUM('ONLY_WX','ONLY_SYS','AMOUNT_MISMATCH','STATUS_MISMATCH') 
+NOT NULL,
+  wx_amount DECIMAL(10,2) DEFAULT NULL,
+  sys_amount DECIMAL(10,2) DEFAULT NULL,
+  wx_status VARCHAR(32) DEFAULT NULL,
+  sys_status VARCHAR(32) DEFAULT NULL,
+  handle_status ENUM('UNHANDLED','HANDLED','IGNORE') DEFAULT 'UNHANDLED',
+  handle_remark VARCHAR(512) DEFAULT '',
+  handle_staff_id BIGINT DEFAULT NULL,
+25/57
+===== PAGE 26 =====
+6. 图纸生成与报价
+6.1 图纸生成服务（封装自 perler-pattern-generator）
+图片上传走 OSS 直传（后端签发临时凭证），生成为异步任务时前端轮询 GET /api/pattern/task/
+{task_id} 。
+6.1.1 图纸服务故障降级
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE
+CURRENT_TIMESTAMP
+);
+sql
+POST /api/pattern/generate
+Content-Type: application/json
+{
+  "image_url": "https://oss/xxx.png",
+  "max_width": 48,
+  "max_height": 48,
+  "max_colors": 12,
+  "style": "cartoon"
+}
+http
+{
+"task_id": "PT202610090001",
+"status": "SUCCESS",
+"pattern_url": "https://oss/pattern_xxx.png",
+"width": 30,
+"height": 30,
+"total_beans": 900,
+"color_count": 11,
+"colors": [
+{ "code": "A01", "name": "白色", "count": 120 }
+],
+"difficulty": "NORMAL"
+}
+json
+26/57
+===== PAGE 27 =====
+当 perler-pattern-generator  图纸生成服务不可用（超时、报错、服务宕机），不能直接阻断来图定
+制下单流程。
+异步任务调用图纸服务，当任务失败，后台 PC 管理后台提供手动录入图纸参数入口。
+管理员可以对该 custom_order 任务手动录入： width、height、total_beans、color_count、
+colors_json、difficulty ；录入完成之后系统继续执行报价、订单后续流程。
+手动录入操作写入 audit_log，action= PATTERN_MANUAL_INPUT ，记录操作人、录入前后数据快照。
+6.2 报价接口
+1. 
+2. 
+3. 
+POST /api/admin/custom-order/{orderId}/pattern-manual
+{
+  "width": 32,
+  "height": 32,
+  "total_beans": 1200,
+  "color_count": 8,
+  "colors_json": [{"code":"A01","name":"白色","count":200}],
+  "difficulty": "NORMAL"
+}
+http
+POST /api/custom/quote
+{
+  "total_beans": 900,
+  "color_count": 11,
+  "iron_type": "GLITTER",
+  "accessories": ["KEYCHAIN"],
+  "shipping": true
+}
+http
+{
+"price_bean": 1.35,
+"price_labor": 18.00,
+"price_iron": 3.00,
+"price_accessory": 1.00,
+"price_shipping": 6.00,
+"total_price": 29.35,
+"deposit": 14.67,
+"breakdown": [
+27/57
+===== PAGE 28 =====
+6.3 定价算法（读取 pricing_config，全部可配置）
+{ "name": "豆子成本", "amount": 1.35 },
+{ "name": "手工费(复杂)", "amount": 18.00 },
+{ "name": "格利特烫", "amount": 3.00 },
+{ "name": "钥匙扣", "amount": 1.00 },
+{ "name": "运费", "amount": 6.00 }
+]
+}
+json
+定价算法按门店读取 pricing_config（store_id 匹配，无则回退全局默认）：
+豆子成本 price_bean     = total_beans × bean_unit_price
+手工费 price_labor      = total_beans × labor_unit_price
+  labor_unit_price：
+    color_count <= color_threshold  -> labor_price_normal
+    color_count >  color_threshold  -> labor_price_complex
+特殊烫 price_iron       =
+    NORMAL  -> 0
+    GLITTER -> [iron_glitter_min, iron_glitter_max] 区间取值（默认中值，可
+配置/店员取值）
+配件 price_accessory    = 各项配件费求和
+    KEYCHAIN            -> accessory_keychain
+    FRIDGE_MAGNET       -> accessory_fridge_magnet
+    NO_HOLE_DOUBLE      -> accessory_no_hole_double
+    FRAME               -> accessory_frame（装裱/配框）
+运费 price_shipping     =
+    shipping == false                                   -> 0
+    total(豆+工+烫+配件) >= free_shipping_threshold      -> 0
+    否则                                                -> shipping_fee
+总价 total_price        = price_bean + price_labor + price_iron + 
+price_accessory + price_shipping
+定金 deposit            = total_price × deposit_ratio（默认 50%，可配置 
+30%~50%）
+[v1.3] 会员折扣与积分抵扣顺序（适用于定制订单、到店结算、配件/材料包下单）：
+  等级折扣应用：total_after_discount = total_price × discount_rate（不含运
+费）
+  积分抵扣：deduct_amount = use_points / points_to_yuan_rate
+    约束：deduct_amount ≤ total_after_discount × points_deduct_max_ratio
+  最终应付 = total_after_discount - deduct_amount - 券抵扣 + 运费
+text
+28/57
+===== PAGE 29 =====
+报价逐项展示（价格透明）；下单时锁定当时的 pricing_config 快照（写入 custom_order 分项金额），
+后续调价不影响历史订单。
+6.3.1 定制订单商家拒绝流程
+接口：
+业务流程：
+仅店长/管理员角色可执行拒绝；写入 audit_log action="ORDER_CANCEL" 。
+更新 custom_order.status=CANCELLED ，写入 reject_reason 、 reject_at 。
+自动退回已支付定金：调用退款接口，原路退款用户；生成 payment_record  退款记录。
+用户端定制订单详情页展示拒绝时间 + reject_reason  拒绝理由。
+如果配置库存扣减策略为 ON_PRODUCE_START ，此时还未扣库存，无需回滚库存；
+如果策略为 ON_ORDER_CONFIRM ，执行库存 RETURN 回补库存。
+6.3.2 明确定金退/不退业务规则
+参数存放于 pricing_config，后台可修改。
+DIY 到店预约定金
+用户在预约开始时间前 N 小时（ cancel_free_hours ，后台配置）主动取消预约：定金原路退回
+用户预约开始前不足 N 小时取消 / 爽约未到店：定金不予退还
+商家主动取消预约（门店闭店等）：定金 100% 退回
+来图定制订单定金
+用户下单后，商家未接单，用户主动取消：定金全额退
+商家拒绝订单：定金自动全额原路退回
+商家已接单开始制作后，用户取消订单：定金不退（可后台配置比例）
+所有定金退/不退逻辑全部服务端执行，前端仅展示结果。
+POST /api/admin/custom-order/{id}/reject
+{
+  "reject_reason": "图片存在版权IP风险，无法制作"
+}
+http
+1. 
+2. 
+3. 
+4. 
+5. 
+1. 
+◦ 
+◦ 
+◦ 
+2. 
+◦ 
+◦ 
+◦ 
+29/57
+===== PAGE 30 =====
+6.3.3 用户端退款申请流程
+用户小程序提交退款申请，填写退款金额、退款原因，生成 user_refund_apply  记录，状态 
+PENDING 。
+店长/店员（MANAGER 角色）在 PC 后台/店员小程序看到工单。 
+同意：执行退款，更新工单状态 FINISHED，关联 payment_record 退款记录；审计留痕。
+拒绝：填写拒绝理由，工单状态 REJECTED，推送微信订阅消息告知用户。
+用户小程序查看退款工单全部状态与处理意见。
+7. 到店计时与统一结算
+7.1 扫码开台 & 预约座位【时间段锁机制】
+业务规则：DIY 预约提交时，服务端做时间段排他锁校验。
+预约参数： seat_id、book_start_time、book_end_time、store_id
+锁校验逻辑：
+查询该 seat_id 下所有状态不为 CANCELLED 的预约记录；判断新预约时间段与已有预约时间段时间区
+间重叠。 
+重叠判定： new_book_start < old_book_end AND new_book_end > old_book_start
+如果时间段冲突，直接返回错误： 该座位该时间段已被预约，请更换座位或时间 ，不生成预约数据。
+并发防击穿：使用 Redis 分布式锁，key = lock:seat:book:{seat_id}，预约请求加锁，校验+落库原子执
+行，防止高并发同时预约同一座位同一时段。
+仅服务端校验，前端时间选择仅做辅助，不可信任前端过滤。
+1. 
+2. 
+◦ 
+◦ 
+3. 
+POST /api/user/refund/apply
+{
+  "biz_type": "CUSTOM_ORDER",
+  "biz_id": 1001,
+  "apply_amount": 14.67,
+  "apply_reason": "个人原因不需要制作"
+}
+GET /api/user/refund/list
+GET /api/user/refund/{applyId}/detail
+http
+1. 
+2. 
+3. 
+4. 
+5. 
+30/57
+===== PAGE 31 =====
+校验：座位是否空闲/已为本用户预约、套餐是否有效、券是否可用（时长券对应套餐）。通过后写
+Redis 实时态并置座位为 TIMING。
+7.2 计时规则
+HOURLY：正计时；离店按实际分钟结算（不足一小时按配置规则取整或按 hourly_unit_price/60 折
+算）。
+THREE_HOUR： 
+先用券，倒计时 180 分钟，coupon_countdown_end = start_time + 180min - pause_seconds。
+用完自动转正计时，超时部分按 package.hourly_unit_price 折算，累计 overtime_minutes。
+ALL_DAY：显示"全天券"，正计时仅记录停留时长，不自动收费（timing_fee = 套餐价）。
+暂停：吃饭/休息暂停累计到 pause_seconds，不计费；TIMING 与 PAUSED 互切。
+不弹续费窗：超时直接累加，离店统一算钱。
+7.3 计时状态存储（Redis + 落库）
+控制操作（开台/暂停/继续/结束）立即写 Redis 并同步更新 store_order。
+后台每分钟把活跃计时态刷写回 MySQL（预计算 overtime_minutes、timing_fee），防服务重启丢数
+据；刷写失败需重试队列，保证最终一致。
+POST /api/store/booking/submit
+{
+  "seat_id": 10,
+  "book_start_time": "2026-10-10 14:00:00",
+  "book_end_time": "2026-10-10 16:00:00",
+  "package_id": 3
+}
+http
+POST /api/store/checkin
+{ "seat_id": 3, "user_id": 1001, "package_id": 2, "coupon_id": null }
+http
+• 
+• 
+◦ 
+◦ 
+• 
+• 
+• 
+key: store:order:{order_id} -> HASH
+fields: start_time, timing_type, coupon_used, coupon_countdown_end,
+        pause_seconds, pause_start, seat_id, user_id, status
+text
+• 
+• 
+31/57
+===== PAGE 32 =====
+剩余/已玩时长由服务端按 start_time / pause_seconds / now 计算下发，前端只展示，不作为计费依
+据。
+7.4 统一结算
+流程：计算计时费（含超时）、特殊烫、配件加购 → 应用会员等级折扣 → 应用积分抵扣 → 应用券抵扣
+与团购抵扣 → 写 store_order_item + payment_record 并发起微信支付/登记收款 → 成功后置
+SETTLED、记录 settled_by_staff_id 、座位置 IDLE、按规则退可退定金 → 写入 audit_log → 结算
+完成后触发积分入账 → 店长可撤销结算（SETTLED -> COMPLETED，二次确认、写入 audit_log 并退
+款）。
+7.4.1 逃单订单标记
+业务场景：顾客消费完，不结算直接离开座位。
+店员/店长在店员端座位看板，针对 PENDING_SETTLE  待结算订单标记逃单。
+• 
+POST /api/store/settle
+{ "store_order_id": 2001, "staff_id": 5 }
+http
+{
+"store_order_id": 2001,
+"items": [
+{ "name": "3小时券", "amount": 0.00, "direction": "DEDUCT" },
+{ "name": "超时 42 分钟", "amount": 14.00, "direction": "CHARGE" },
+{ "name": "格利特烫", "amount": 3.00, "direction": "CHARGE" },
+{ "name": "钥匙扣加购", "amount": 1.00, "direction": "CHARGE" },
+{ "name": "金卡会员折扣", "amount": 1.70, "direction": "DEDUCT" },
+{ "name": "积分抵扣(200积分)", "amount": 2.00, "direction": "DEDUCT" }
+],
+"total_fee": 18.00,
+"coupon_deduction": 0.00,
+"thirdparty_deduction": 0.00,
+"member_discount": 1.70,
+"points_deduct": 2.00,
+"payable": 14.30,
+"pay_params": { "wxpay": true }
+}
+json
+1. 
+32/57
+===== PAGE 33 =====
+业务逻辑： 
+更新 store_order.is_escape = 1 ；订单状态变更为 COMPLETED 。
+写入 store_order_escape_record  逃单记录表，记录操作人、逃单时间、应付未付金额。
+写入 audit_log action="ORDER_ESCAPE_MARK" 。
+座位置为 IDLE，释放座位资源。
+用户端订单状态可见，不支持再次发起支付；后台报表统计逃单金额。
+7.4.2 库存扣减时机开关
+pricing_config.inventory_deduct_strategy  门店维度配置二选一：
+ON_ORDER_CONFIRM ：定制订单确认下单并且定金支付完成，立刻扣减豆子、配件库存，生成 OUT 库
+存流水；订单取消/拒绝执行 RETURN 回补库存。
+ON_PRODUCE_START ：定制订单流转状态变更到 COLORING （开始制作）的时候才扣减库存；下单阶
+段不扣库存。
+所有库存扣减、回补均写 inventory_log  流水；库存不足触发预警通知，不阻断下单。
+8. 券与兑换
+券类型：DURATION / ACCESSORY / MATERIAL / DISCOUNT。来源：BUY / GIFT / MEITUAN /
+DOUYIN / SYSTEM。
+用户可在小程序直接下单买钥匙扣、冰箱贴、材料包、到店时长，也可用已有券兑换配件
+（accessory_order 的 REDEEM 场景）。
+核销必须服务端校验，写 coupon_redeem_log，支持撤销（REVOKE 回滚券状态与金额）；撤销必须填
+写原因。
+所有券操作（发放、核销、撤销）同步写入 audit_log。
+POST /api/store-order/{orderId}/mark-escape
+{
+  "remark": "顾客未结账直接离店"
+}
+http
+2. 
+◦ 
+◦ 
+◦ 
+◦ 
+◦ 
+1. 
+2. 
+• 
+• 
+• 
+33/57
+===== PAGE 34 =====
+状态机：UNUSED -> USED；过期置 EXPIRED；撤销写 REVOKED；公码多次核销以 used_count <
+total_count 控制。
+9. 美团 / 抖音评论同步（合规方案 + 降级策略）
+优先方案：官方开放平台接口 + 人工审核
+抖音：通过抖音开放平台接口拉取本店视频评论。
+美团：通过美团开放平台商家接口拉取门店评价。
+后端定时任务（每日一次）拉增量，按 (platform, platform_id) 去重写入 review_sync。
+管理员后台筛选：隐藏广告、无关、恶意差评。
+audit_status = APPROVED 后同步生成 gallery（source=MEITUAN/DOUYIN）展示。
+保留 raw 原始 JSON 便于追溯。
+降级方案：手动录入
+美团/抖音开放平台接口审批难度大、周期长，很多小店短期内无法获取权限。系统需提供手动录入
+作为降级方案，确保评论同步功能在无法对接 API 时仍可使用。
+降级逻辑：
+管理员/店长在 PC 后台或店员端手动录入评论内容（昵称、头像、评语、评分、来源平台）。
+手动录入的评论 platform = 'MANUAL'，platform_id 可为空（系统自动生成唯一 ID）。
+手动录入同样需经过审核流程（audit_status = PENDING -> APPROVED）。
+后续若获取到官方 API 权限，手动录入数据与 API 拉取数据按 (platform, platform_id) 去重，不会重复。
+所有手动录入操作写入 audit_log，action = 'MANUAL_REVIEW_IMPORT'。
+POST /api/coupon/use
+{ "code": "CPN20261009XXXX", "store_order_id": 2001, "admin_id": 5, 
+"remark": "..." }
+http
+POST /api/coupon/redeem-accessory
+{ "code": "CPN...", "sku": "KEYCHAIN" }
+http
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+1. 
+2. 
+3. 
+4. 
+5. 
+34/57
+===== PAGE 35 =====
+10. 模板库与版权合规
+模板库仅允许 source in (AI, SELF) 或经授权 IMPORTED 图，license_note 强制标注"AI 原创，可商用"或自
+有版权。
+后台上传按来源分流：AI 批量生成入库，自有图人工上传；禁止明显二次元/IP 形象。
+来图定制页明示"用户上传图请自行确保不侵犯第三方版权"，上传前二次弹窗提示版权风险，免责文案
+后台可配。
+11. 微信支付
+统一下单：POST /api/payment/unified-order（biz_type + biz_id + amount -> 小程序支付参数）。
+支付回调：POST /api/payment/wxpay/notify（验签 -> payment_record.status=PAID -> 触发对应业
+务：定金入账 / 到店结算置 SETTLED / 配件单 PAID）。
+退款：可退定金、撤销结算走退款，写 payment_record.status=REFUND。退款操作写入 audit_log。
+幂等：以 out_trade_no 唯一约束 + 回调幂等。
+12. 通知（微信订阅消息）
+定制节点变更（已接单/选色中/拼装中/熨烫中/质检中/质检通过/已发货/已签收/已确认收货）推送。
+到店状态变更（开台成功/剩余时间提醒/结算完成）推送。
+3 小时券剩余时间到点提醒（可选剩余 30 分钟推送）。
+GET  /api/admin/review-sync?platform=DOUYIN&audit_status=PENDING
+POST /api/admin/review-sync/{id}/audit { "audit_status": "APPROVED" }
+POST /api/admin/review-sync/manual
+{
+  "store_id": 1,
+  "platform": "MANUAL",
+  "nickname": "用户昵称",
+  "avatar": "https://...",
+  "content": "评论内容",
+  "rating": 5,
+  "source_url": "https://..."
+}
+http
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+35/57
+===== PAGE 36 =====
+库存预警通知：当库存低于 alert_threshold 时，向店长发送预警推送。
+退款工单状态变更（同意/拒绝）推送给用户。
+高危审计事件（改价、退款、撤销结算、权限变更、手动调整积分等）推送给门店店长。
+订单内消息通知：对方超过 5 分钟未读时推送"您有新订单消息"/"店家回复了您的消息"。
+会员等级变更推送。
+13. 操作审计日志
+13.1 设计原则
+全记录：所有涉及数据变更的高危操作必须记录，不可绕过
+不可篡改：audit_log 只写不改，不支持 UPDATE / DELETE
+可追溯：记录操作人、操作时间、操作前后数据快照、来源 IP
+13.2 必须审计的操作
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+操作类型 (action) 触发场景 风险等级
+PRICE_CHANGE
+修改 pricing_config 中的任何
+字段
+高
+ORDER_CANCEL 取消定制订单或到店订单 高
+ORDER_REFUND 发起退款 高
+SETTLE_REVOKE 撤销已结算的到店订单 高
+INVENTORY_ADJUST 手动调整库存数量 中
+PERMISSION_CHANGE 修改员工角色或权限 高
+CONFIG_CHANGE
+修改套餐价格、座位配置等运
+营配置
+中
+MANUAL_REVIEW_IMPORT 手动录入评论 低
+STAFF_LOGIN 员工登录（失败也要记录） 低
+INVENTORY_RESTOCK 库存补货 低
+PATTERN_MANUAL_INPUT 图纸参数手动录入 低
+36/57
+===== PAGE 37 =====
+13.3 实现方式
+通过 NestJS 中间件 + 装饰器实现，对标注了 @Auditable()  的接口自动记录：
+中间件自动捕获：
+操作人信息（从 JWT token 解析）
+请求 IP 和 User-Agent
+操作前的数据快照（查询旧值）
+操作后的数据快照（新值）
+操作类型 (action) 触发场景 风险等级
+ORDER_ESCAPE_MARK 标记逃单订单 中
+STAFF_SHIFT 交接班提交 低
+IoT_LIGHT_CMD IoT 下发灯光指令 低
+REFUND_APPLY_AUDIT 审核用户退款工单 高
+MSG_SEND 消息发送 低
+MSG_DELETE 违规消息逻辑删除（仅店长） 中
+QC_SUBMIT 质检提交 低
+QC_FAIL_REWORK 质检不通过回退 中
+ORDER_SHIP 发货 低
+ORDER_CONFIRM_RECEIPT 确认收货 低
+POINTS_ADJUST 手动调整积分 高（触发微信告警）
+MEMBER_LEVEL_CHANGE 等级变更 低
+// 使用示例
+@Post('pricing/:storeId')
+@Auditable('PRICE_CHANGE')
+async updatePricing(@Param('storeId') storeId: number, @Body() dto: PricingDto) {
+// 业务逻辑...
+}
+typescript
+• 
+• 
+• 
+• 
+37/57
+===== PAGE 38 =====
+操作时间和目标对象
+13.4 审计日志查询接口
+13.5 高危审计事件微信告警推送
+后台配置哪些 audit_log 的 action 动作触发微信高危告警推送。
+默认触发推送 action 集合： PRICE_CHANGE、ORDER_CANCEL、ORDER_REFUND、SETTLE_REVOKE、
+PERMISSION_CHANGE、INVENTORY_ADJUST、REFUND_APPLY_AUDIT、POINTS_ADJUST
+当业务产生一条高危审计记录，如果匹配告警 action 列表： 
+通过微信订阅消息推送给门店店长账号；推送内容包含：操作人、操作类型、操作对象、简要变更
+信息。
+• 
+GET /api/admin/audit-logs
+  ?action=PRICE_CHANGE
+  &operator_id=5
+  &target_type=pricing_config
+  &target_id=1
+  &start_time=2026-09-01
+  &end_time=2026-10-01
+  &page=1&page_size=20
+http
+{
+"total": 156,
+"data": [
+{
+"id": 1024,
+"operator_name": "张店长",
+"action": "PRICE_CHANGE",
+"target_type": "pricing_config",
+"target_id": 1,
+"before_value": { "bean_unit_price": 0.0015 },
+"after_value": { "bean_unit_price": 0.0018 },
+"ip_address": "192.168.1.100",
+"created_at": "2026-10-01T14:30:00"
+}
+]
+}
+json
+1. 
+2. 
+◦ 
+38/57
+===== PAGE 39 =====
+更新 audit_log.is_wx_alert_sent = 1  标记已推送，避免重复推送。
+支持后台关闭告警总开关。
+13.6 交接班模块
+业务规则：
+当班店员交班，填写当班现金、微信实收金额，系统自动带出当班待结算订单数量；填写备注。
+接班人确认提交，生成 staff_shift  记录；交接班操作写入 audit_log action="STAFF_SHIFT" 。
+PC 后台可导出交接班报表。
+13.7 财务对账中心
+定时任务：每日凌晨执行对账任务 
+调用微信支付商户 API 拉取前一日商户对账单。
+和系统 payment_record  全量比对。
+差异类型： 
+ONLY_WX ：微信有交易记录，系统没有对应订单；
+ONLY_SYS ：系统有支付记录，微信账单无记录；
+AMOUNT_MISMATCH ：金额不一致；
+STATUS_MISMATCH ：支付状态不一致。
+所有差异写入 finance_check_diff 。
+◦ 
+3. 
+# 提交交班记录
+POST /api/admin/shift/submit
+{
+  "store_id": 1,
+  "shift_staff_id": 6,
+  "receive_staff_id": 8,
+  "cash_amount": 230,
+  "wx_amount": 1240,
+  "remark": "2号座位配件库存不足，一笔待结算订单"
+}
+# 查询门店交接班记录
+GET /api/admin/store/{storeId}/shift/list?page=1
+http
+1. 
+2. 
+3. 
+1. 
+◦ 
+◦ 
+◦ 
+▪ 
+▪ 
+▪ 
+▪ 
+◦ 
+39/57
+===== PAGE 40 =====
+PC 后台对账中心页面展示差异列表，支持： 
+查看微信原始数据、系统订单数据对照；
+管理员填写处理备注，标记： UNHANDLED 未处理 / HANDLED 已处理 / IGNORE 忽略 ；
+导出完整对账报表与差异报表。
+13.8 IoT 座位指示灯模块（二期可选）
+依赖 EMQX MQTT 服务；模块后台总开关控制启用，关闭完全不执行逻辑。
+MQTT 主题约定：
+设备上报心跳： iot/device/{device_sn}/heartbeat
+服务端下发灯光命令： iot/device/{device_sn}/cmd
+灯光状态映射：
+拓展：暂停计时可设置红色慢闪；套餐券即将到期可红灯快闪提醒。
+事件驱动机制：
+监听 seat  表状态变更事件；如果该座位绑定 iot 设备并且模块开关开启，则下发灯光指令；设备离线
+直接丢弃指令，不阻塞原有业务逻辑。
+2. 
+◦ 
+◦ 
+◦ 
+# 获取对账差异列表
+GET /api/admin/finance-check/diff?store_id=1&check_date=2026-10-08
+# 标记差异处理状态
+PATCH /api/admin/finance-check/diff/{diffId}/handle
+{
+  "handle_status": "HANDLED",
+  "handle_remark": "用户重复支付，已经线下退回"
+}
+http
+• 
+• 
+seat.status 灯光状态
+IDLE 绿色常亮（空闲可扫码开台）
+RESERVED 黄色常亮（已预约未签到）
+TIMING 红色常亮（使用中计时）
+PENDING_SETTLE 红色闪烁（待结算）
+40/57
+===== PAGE 41 =====
+接口：
+业务强制约束：
+IoT 硬件灯光仅作为 UI 展示外设；座位业务逻辑、计时、开台、结算全部以 MySQL seat 表状态为
+准。设备离线、故障，整套业务系统 100% 正常运行。所有下发灯光命令写入 audit_log
+（action= IoT_LIGHT_CMD ）。禁止任何业务逻辑依赖 IoT 设备返回值。
+14. 订单内消息系统
+14.1 业务背景
+定制订单是拼豆手工店的核心场景，用户上传图片后往往需要与店员沟通：调整颜色、修改尺寸、确认
+效果图、催促进度等。当前系统缺少用户与店员的沟通通道，用户只能加微信私聊，导致：
+沟通记录散落在个人微信中，换店员后信息断档
+纠纷时无系统内沟通记录可查
+店员同时处理多个订单，无法关联订单上下文
+本模块在订单维度提供消息通道，用户和店员可以在订单详情页内直接沟通（文字 + 图片），消息与订
+单绑定，支持后续纠纷追溯。
+14.2 接口契约
+发送消息
+# PC 后台绑定座位和 IoT 设备 SN
+POST /api/admin/iot/seat-device/bind
+{ "seat_id": 12, "device_sn": "ESP32_0001" }
+# 手动下发灯光调试指令
+POST /api/admin/iot/seat-device/{seatId}/light
+{ "color": "GREEN", "blink": false }
+# 获取门店 IoT 设备列表
+GET /api/admin/iot/store/{storeId}/devices
+http
+• 
+• 
+• 
+41/57
+===== PAGE 42 =====
+获取消息列表（分页）
+POST /api/order/{bizType}/{orderId}/message
+// 鉴权：用户端用 user JWT，店员端用 staff JWT，系统自动判断 sender_type
+// 请求
+{
+  "message_type": "IMAGE",
+  "content": "这个颜色帮我换成深蓝色",
+  "images": ["https://oss/xxx.png"]
+}
+// 响应
+{
+  "id": 5001,
+  "biz_type": "CUSTOM_ORDER",
+  "order_id": 1001,
+  "sender_type": "USER",
+  "sender_id": 1001,
+  "sender_name": "小明",
+  "message_type": "IMAGE",
+  "content": "这个颜色帮我换成深蓝色",
+  "images": ["https://oss/xxx.png"],
+  "created_at": "2026-10-09T15:30:00"
+}
+http
+GET /api/order/{bizType}/{orderId}/messages?
+page=1&page_size=30&before_id=5000
+// before_id: 客户端加载更早消息的游标，不传则取最新
+// 响应
+{
+  "total": 42,
+  "has_more": true,
+  "data": [
+    {
+      "id": 5001,
+      "sender_type": "USER",
+      "sender_name": "小明",
+      "message_type": "IMAGE",
+      "content": "这个颜色帮我换成深蓝色",
+      "images": ["https://oss/xxx.png"],
+      "is_read_by_staff": false,
+42/57
+===== PAGE 43 =====
+标记已读
+获取未读消息总数（角标）
+店长删除违规消息（逻辑删除）
+      "created_at": "2026-10-09T15:30:00"
+    }
+  ]
+}
+http
+POST /api/order/{bizType}/{orderId}/messages/read
+// 鉴权后自动判断标记 user_unread=0 还是 staff_unread=0
+// 响应
+{ "ok": true }
+http
+GET /api/user/messages/unread-count    // 用户端
+GET /api/staff/messages/unread-count   // 店员端
+// 响应
+{
+  "total_unread": 5,
+  "orders": [
+    { "biz_type": "CUSTOM_ORDER", "order_id": 1001, "unread": 3 },
+    { "biz_type": "STORE_ORDER", "order_id": 2001, "unread": 2 }
+  ]
+}
+http
+POST /api/admin/order/message/{messageId}/delete
+// 仅 MANAGER/OWNER 角色可操作
+{
+  "reason": "用户发送不相关广告内容"
+}
+// 写入 audit_log action=MSG_DELETE
+http
+43/57
+===== PAGE 44 =====
+14.3 业务规则
+消息归属：定制订单消息归属于 assigned_staff_id （接单时指派）；到店订单归属于开台店员。
+店员离职/换班不影响消息可读性（店长可查看全门店所有订单消息）。
+消息类型：TEXT（纯文字）、IMAGE（图片+可选文字说明）、SYSTEM（系统自动消息，如"订单状态
+变更为已接单"，不可回复）。
+图片安全：用户上传的图片走 OSS 直传，后端回调时调用微信内容安全检测 API（msg_sec_check），
+检测不通过则标记为违规，返回提示但不入消息列表。
+已读机制：消息列表接口被调用时，自动将对方未读标记清零并更新 Redis 缓存角标。不需要单独调用
+标记已读接口（但提供接口供主动刷新）。
+消息不可删：用户不可删除自己发送的消息；仅店长可逻辑删除违规消息（is_deleted=1），操作写入
+审计日志。删除后用户端显示"该消息已被管理员移除"。
+有效期：订单状态为 CANCELLED 或 CONFIRMED 后 30 天内仍可查看消息；超过 30 天消息归档（逻辑
+保留，不在列表展示，需后台手动查询）。
+频率限制：同一用户 1 分钟内最多发送 10 条消息，防止刷屏；图片消息 1 分钟内最多 5 张。
+14.4 通知与审计集成
+15. 质检与确认收货
+15.1 业务背景
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+事件 通知/审计动作
+用户发送消息
+店员端角标 +1；如店员未在线（超过5分钟未
+读），推送微信订阅消息"您有新订单消息"
+店员发送消息
+用户端角标 +1；推送微信订阅消息"店家回复了
+您的消息"
+消息发送
+写入 audit_log action=MSG_SEND（低风险等
+级，仅记录不告警）
+违规消息删除
+写入 audit_log action=MSG_DELETE（中风险，
+记录删除人和理由）
+系统消息（状态变更）
+自动生成 SYSTEM 类型消息 + 对应订阅消息推送
+（复用通知模块）
+44/57
+===== PAGE 45 =====
+当前定制订单流转到 DONE 即视为完成，缺少两个关键环节：
+质检：拼豆作品在熨烫后可能存在豆子脱落、烫痕不均、颜色偏差等质量问题，需要店员拍照质检留
+档，作为交付证据。质检不通过可回退返工。
+确认收货：订单标记 SHIPPED 后用户无法看到物流信息，也没有确认收货机制。如果用户声称未收到
+货，系统没有签收证据。需要增加物流单号录入、用户确认收货、超期自动确认。
+15.2 状态机变更
+原 v1.2 状态流：
+v1.3 新状态流：
+QC_PENDING：熨烫完成，等待质检
+QC_PASSED：质检通过，等待发货
+DELIVERED：已发货（物流已揽收）
+CONFIRMED：用户已确认收货 / 超期自动确认
+质检不通过的状态回退：
+豆子脱落/拼装问题 → 回退至 ASSEMBLING
+熨烫问题（烫痕/变形）→ 回退至 IRONING
+颜色偏差/选色错误 → 回退至 COLORING
+回退操作写入 audit_log action=QC_FAIL_REWORK，记录质检照片、返工原因、回退目标。订单消息自
+动生成 SYSTEM 消息"质检不通过，正在返工"并推送用户。
+15.3 接口契约
+提交质检结果
+• 
+• 
+PENDING → ACCEPTED → COLORING → ASSEMBLING → IRONING → DONE → SHIPPED
+PENDING → ACCEPTED → COLORING → ASSEMBLING → IRONING → QC_PENDING → 
+QC_PASSED → DONE → SHIPPED → DELIVERED → CONFIRMED
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+45/57
+===== PAGE 46 =====
+发货（录入物流信息）
+查询物流信息
+POST /api/staff/custom-order/{id}/qc
+// 仅 STAFF/MANAGER 角色可操作
+// 质检通过
+{
+  "result": "PASS",
+  "qc_images": ["https://oss/qc1.png", "https://oss/qc2.png"],
+  "remark": "成品完好，烫面均匀"
+}
+// 订单状态 QC_PENDING → QC_PASSED → DONE
+// 质检不通过
+{
+  "result": "FAIL",
+  "fail_reason": "右下角3颗豆子脱落",
+  "rework_target": "ASSEMBLING",
+  "qc_images": ["https://oss/qc_fail1.png"],
+  "remark": "需补豆后重新拼装"
+}
+// 订单状态 QC_PENDING → 回退至 rework_target
+http
+POST /api/admin/custom-order/{id}/ship
+// 仅 MANAGER/OWNER 角色可操作
+{
+  "tracking_company": "顺丰速运",
+  "tracking_no": "SF1234567890"
+}
+// 订单状态 DONE → SHIPPED；写入 shipped_at
+// 自动生成订单消息（SYSTEM）："您的订单已发货，物流单号 SF1234567890"
+// 推送微信订阅消息
+http
+GET /api/user/custom-order/{id}/tracking
+{
+  "tracking_company": "顺丰速运",
+46/57
+===== PAGE 47 =====
+用户确认收货
+15.4 业务规则
+质检规则：
+强制质检：所有定制订单在 IRONING 完成后必须经过质检，不能跳过。状态流转 IRONING →
+QC_PENDING 是强制的。
+质检照片要求：至少上传 2 张照片（正面 + 背面），建议 3-5 张。照片上传后自动叠加水印（时间戳 +
+操作人姓名 + 订单号），不可修改、不可删除。
+质检通过：状态自动流转 QC_PENDING → QC_PASSED → DONE，系统自动生成 SYSTEM 消息"质检通
+过，准备发货"。
+质检不通过：店员选择不通过原因和回退目标状态，订单回到对应制作阶段。同一订单可以有多次质
+检记录。
+质检记录查询：PC 后台订单详情可查看全部质检记录（含照片）；用户端可查看最近一次质检通过的
+照片（不展示不通过记录的细节，仅提示"质检不通过，正在返工"）。
+确认收货规则：
+发货触发：店长录入物流单号后，状态 SHIPPED → 自动查询物流状态。物流显示签收后状态 →
+DELIVERED，推送用户"您的作品已签收，请确认收货"。
+自动确认：状态变为 DELIVERED 后，启动 auto_confirm_days （默认7天）倒计时。超期未确认，定
+时任务自动将状态置为 CONFIRMED， auto_confirmed=1 。
+  "tracking_no": "SF1234567890",
+  "shipped_at": "2026-10-10T10:00:00",
+  "status": "SHIPPED",
+  "tracking_detail": [
+    { "time": "2026-10-10 10:00", "desc": "已揽收" },
+    { "time": "2026-10-10 14:00", "desc": "运输中" }
+  ]
+}
+http
+POST /api/user/custom-order/{id}/confirm-receipt
+// 校验：订单状态必须为 DELIVERED
+// 通过后：状态 → CONFIRMED，写入 confirmed_at
+// 触发积分入账
+{ "ok": true }
+http
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+47/57
+===== PAGE 48 =====
+确认收货触发积分入账：状态变为 CONFIRMED 后（无论用户主动还是自动），触发积分结算，将本单
+积分从"待入账"变为"已入账"。
+物流API降级：如未接入第三方物流查询API，发货后状态直接置为 SHIPPED，由用户手动确认收货。自
+动确认倒计时从 shipped_at  开始计算（ auto_confirm_days  + 3天预估配送时间）。
+纠纷处理：用户可在确认收货前发起退款申请（复用退款工单模块），退款工单处理期间暂停自动确
+认倒计时。
+16. 轻量会员体系
+16.1 业务背景
+拼豆手工店是典型的体验型消费门店，复购率是经营命脉。当前系统 user 表已有 member_level  和 
+points  字段但无业务逻辑。本模块实现一期轻量会员体系：
+消费积分：消费金额自动累积积分
+会员等级：4 级体系，累计积分达到阈值自动升级
+等级折扣：不同等级享受不同折扣比例
+积分抵扣：下单时可用积分抵扣部分金额
+生日福利：生日月双倍积分 + 免费熨烫
+积分过期：12 个月未消费积分自动过期
+16.2 积分规则
+积分赚取：
+触发时机：定制订单确认收货（CONFIRMED）后积分入账；到店订单结算（SETTLED）后积分入账；
+配件/材料包订单支付完成（PAID）后积分入账。
+计算公式：获得积分 = 实付金额 × points_per_yuan。实付金额 = 总价 - 积分抵扣 - 券抵扣（不含运
+费）。
+生日月双倍：当 birthday_double_points=1  且用户生日月与当前月一致时，获得积分 ×2。生日以 
+user.birthday  字段为准。
+积分过期：每笔积分入账时写入 expire_at （当前时间 + points_expire_months  个月）。定时任
+务每日扫描 expire_at < NOW()  且 direction=1  的记录，生成 EXPIRE 流水扣减积分。
+累计积分： cumulative_points  只增不减（过期不扣减累计值），用于等级判定。
+原子性：积分入账与订单状态变更是同一数据库事务。订单取消/退款时，已入账积分通过 SPEND 流水
+扣回（如积分不足则扣至0，记录负数流水标注"退款积分回收"）。
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+• 
+48/57
+===== PAGE 49 =====
+积分消费：
+使用场景：定制订单下单、到店结算、配件/材料包下单时，用户可选择使用积分抵扣。
+计算公式：抵扣金额 = 使用积分数 / points_to_yuan_rate （默认 100 积分 = 1 元）。
+抵扣上限：积分抵扣金额 ≤ 订单应付金额 × points_deduct_max_ratio （默认 30%）。
+扣减顺序：优先扣减即将过期的积分（FIFO 按 expire_at 排序）。
+订单取消退回：订单取消时，已使用的积分原路退回（EARN 流水，expire_at 恢复原值）。退回的积分
+如果已过期，则不退回。
+并发控制：积分扣减使用 Redis 分布式锁 lock:points:user:{user_id} ，防止同时使用积分导致超
+扣。
+16.3 等级权益
+等级计算规则：
+自动升级：每次积分入账后，比较 cumulative_points  与 member_level_config  各等级阈值，取
+满足条件的最高等级。升级写入 audit_log action=MEMBER_LEVEL_CHANGE 。
+不自动降级：积分过期不降低 cumulative_points ，因此不影响等级。等级一旦升级永久有效（一
+期策略，二期可调整为滚动窗口）。
+折扣适用范围：等级折扣应用于订单总价（不含运费），在积分抵扣之前计算。顺序：总价 → 等级折
+扣 → 积分抵扣 → 券抵扣 → 应付金额。
+生日福利：双倍积分需 birthday_double_points=1  且 level >= 2；钻石会员生日月定制订单 
+price_iron = 0 （系统自动减免，写备注"生日福利-免费熨烫"）。
+等级配置可修改：PC 后台可修改各等级阈值和折扣率，修改写入审计日志。修改不影响已有等级的用
+户。
+16.4 接口契约
+• 
+• 
+• 
+• 
+• 
+• 
+等级 名称 累计积分 折扣率 权益
+0 普通会员 0 无折扣 基础功能
+1 银卡会员 500 95折 下单95折
+2 金卡会员 2000 9折
+下单9折 + 生日
+月双倍积分
+3 钻石会员 5000 85折
+下单85折 + 生日
+月双倍积分 + 每
+月免费熨烫1次
+• 
+• 
+• 
+• 
+• 
+49/57
+===== PAGE 50 =====
+获取会员信息
+获取积分流水
+GET /api/user/member/info
+{
+  "member_level": 2,
+  "level_name": "金卡会员",
+  "points": 2350,
+  "cumulative_points": 2350,
+  "discount_rate": 0.90,
+  "benefits": ["下单9折", "生日月双倍积分"],
+  "next_level": {
+    "name": "钻石会员",
+    "min_points": 5000,
+    "points_needed": 2650
+  },
+  "points_expiring": 120,
+  "is_birthday_month": true
+}
+http
+GET /api/user/points/log?page=1&page_size=20&change_type=EARN
+{
+  "total": 56,
+  "data": [
+    {
+      "id": 101,
+      "change_type": "EARN",
+      "points": 18,
+      "direction": 1,
+      "after_points": 2350,
+      "ref_biz_type": "STORE_ORDER",
+      "ref_order_no": "SO202610090001",
+      "expire_at": "2027-10-09T00:00:00",
+      "remark": "到店消费积分",
+      "created_at": "2026-10-09T16:00:00"
+    }
+  ]
+}
+http
+50/57
+===== PAGE 51 =====
+结算时预计算积分抵扣
+PC 后台：手动调整积分
+PC 后台：会员列表与积分流水查询
+POST /api/user/points/preview-deduct
+// 在结算页用户选择使用积分时调用
+{
+  "order_type": "STORE_ORDER",
+  "order_id": 2001,
+  "use_points": 200
+}
+// 响应
+{
+  "available_points": 2350,
+  "using_points": 200,
+  "deduct_amount": 2.00,
+  "max_deduct_points": 705,
+  "max_deduct_amount": 7.05,
+  "order_after_deduct": 16.00,
+  "insufficient": false
+}
+http
+POST /api/admin/user/{userId}/points/adjust
+// 仅 OWNER 角色可操作，写入审计 + 微信告警
+{
+  "points": 100,
+  "direction": 1,
+  "remark": "活动补偿积分"
+}
+// 写入 audit_log action=POINTS_ADJUST（高危，触发微信告警）
+http
+GET /api/admin/members?level=2&page=1&page_size=20&keyword=手机号/昵称
+GET /api/admin/members/{userId}/points-log?change_type=EARN&page=1
+http
+51/57
+===== PAGE 52 =====
+17. 经营分析仪表盘口径
+所有指标按 store_id 隔离，可按日/周/月筛选。
+18. 安全与并发约束
+资金、计时、核销、退款全部服务端校验，不信任前端。
+座位预约、券核销、库存扣减、积分扣减使用 Redis 分布式锁，key 粒度到 seat_id / coupon_id /
+inventory_id / user_id。
+所有写操作带幂等键（客户端 request_id），回调接口以 out_trade_no 唯一约束。
+JWT 鉴权，店员端与 PC 端 token 分离；普通店员 token 不具备改价、撤销结算、审核退款、手动调整
+积分权限。
+audit_log 只写不改，DB 账号回收 DELETE/UPDATE 权限。
+微信支付回调必须验签，退款必须二次确认。
+消息图片走微信内容安全检测；质检照片水印防篡改。
+19. 开发顺序（里程碑）
+指标 口径
+翻台率 当日门店全部座位产生的到店订单数 / 座位总数
+客单价
+当日已结算订单总金额 / 当日已结算订单数（不
+含定金单独统计，定金计入对应订单）
+高峰时段 按 1 小时粒度统计开台订单数，TOP3 时段高亮
+收入构成
+定制订单 / 到店计时 / 配件材料包 / 商城成品 四
+类收入占比
+库存预警
+当前库存 < alert_threshold 的物料列表，红点标
+记
+逃单金额 当日 is_escape=1 的订单应结未付金额合计
+会员分析
+各等级会员占比、会员复购率、积分消耗率、生
+日月活动效果
+1. 
+2. 
+3. 
+4. 
+5. 
+6. 
+7. 
+52/57
+===== PAGE 53 =====
+# 阶段 内容 优先级
+1 基础框架
+三端脚手架、登录鉴
+权、门店管理、座位/
+套餐/定价配置、商品
+与模板基础 CRUD
+P0
+2 审计基础设施
+audit_log 表、审计中
+间件、@Auditable 装
+饰器、高危微信告警
+推送
+P0
+3 到店闭环
+座位看板、预约时间
+段锁、扫码开台、计
+时、券核销、统一结
+算、微信支付、逃单
+标记、交接班
+P0
+4 定制闭环
+图片上传、图纸生成
+服务对接、图纸故障
+降级、自动报价、商
+家拒绝流程、定金完
+整规则、库存扣减策
+略
+P0
+5 质检与确认收货
+质检节点、质检照片
+上传与水印、状态机
+扩展、物流发货录
+入、用户确认收货、
+超期自动确认
+P0
+6 订单内消息系统
+消息表、消息收发接
+口、未读角标、图片
+安全检测、消息中心
+UI
+P0
+7 库存管理
+库存 CRUD、变动流
+水、预警机制、补货/
+盘点、库存与订单联
+动
+P1
+8 轻量会员体系 P1
+53/57
+===== PAGE 54 =====
+里程碑说明：
+阶段 5 和 6 前置于阶段 8：质检与确认收货是积分入账的触发条件（CONFIRMED 状态），订单消息系
+统是定制流程的沟通基础，必须在会员体系之前完成。
+阶段 8 依赖阶段 3 和 4：积分赚取依赖到店结算（SETTLED）和定制确认收货（CONFIRMED）两个触发
+点，因此必须在到店闭环和定制闭环（含质检）完成后进行。
+阶段 5 可与阶段 3 并行：质检模块的数据库改动独立于到店计时，开发可并行。
+20. 交付验收标准 Definition of Done
+v1.1 验收项
+audit_log 全量记录高危操作，只写不改；管理页面可按操作人/类型/时间/目标筛选。
+# 阶段 内容 优先级
+等级配置、积分流
+水、积分赚取/消费/
+过期、等级折扣、积
+分抵扣、生日福利、
+会员管理UI
+9 用户退款工单
+用户端提交退款，后
+台审核退款工单
+P1
+10 内容与合规
+模板库、晒图区、评
+论同步 + 审核 + 手动
+录入降级
+P1
+11 经营分析与财务
+经营仪表盘（含会员
+分析）、库存预警看
+板、每日自动对账
+P1
+12
+IoT 座位指示灯（二
+期可选）
+MQTT 设备管理、灯
+光下发、心跳、设备
+绑定
+P2
+13 二期
+会员进阶、积分商
+城、拼团/秒杀、分
+销、数据大屏
+P2
+• 
+• 
+• 
+54/57
+===== PAGE 55 =====
+store_order.settled_by_staff_id 记录结算操作人。
+user 软删除（deleted_at），gallery 按 store_id 隔离。
+多门店数据隔离（store_id），定价按门店差异化配置。
+库存管理模块：inventory 表 + inventory_log 流水表；库存预警通知；库存变动全记录审计。
+评论同步降级：支持 platform=MANUAL 手动录入，审核流程一致。
+v1.2 验收项
+DIY 预约座位服务端时间段冲突校验，Redis 分布式锁防止并发预约同一时段座位，不会出现预约冲
+突。
+定制订单支持商家拒绝，拒绝理由回传给用户前端展示，按规则自动退回定金；库存按扣减策略正确
+回滚。
+定金退/不退全部后台配置，服务端执行，不依赖前端。
+用户小程序可以提交退款申请；后台店长可以审核同意/拒绝，用户可以查看退款工单完整进度。
+图纸生成服务故障时，后台支持手动录入图纸参数，不阻断定制下单流程；手动录入操作审计留痕。
+店员端支持标记逃单订单；逃单记录完整落库审计；座位正常释放。
+门店交接班模块可以提交当班营收、待结算订单、备注，交接班记录可查询导出。
+每个门店支持切换库存扣减策略：下单确认扣库存 / 开始制作扣库存；策略变更不影响历史已存在订
+单。
+配置的高危审计事件触发微信订阅消息告警推送；标记已推送避免重复告警。
+财务对账中心每日自动拉取微信账单，和系统订单比对，生成差异记录；支持标记处理状态、导出报
+表。
+IoT 座位指示灯模块（二期可选）：硬件仅展示状态，业务完全以数据库为准；开关关闭时 IoT 模块完
+全不生效；所有灯光指令写入审计日志；设备离线不影响主业务。
+结算操作记录 settled_by_staff_id；撤销结算二次确认并审计留痕。
+多门店场景下，定价、库存、座位、订单数据按 store_id 完全隔离。
+微信支付回调幂等；退款原路返回，写 payment_record 与 audit_log。
+所有金额展示两位小数，所有价格参数后台可配置，代码中无硬编码金额。
+55/57
+===== PAGE 56 =====
+v1.3 验收项
+用户端和店员端均可在订单详情页发送和查看消息（文字 + 图片）
+消息按订单维度隔离，用户只能查看自己订单的消息，店员只能查看所属门店订单的消息
+未读消息角标实时更新（Redis 缓存），用户端和店员端均有角标展示
+新消息触发微信订阅消息推送（对方超过 5 分钟未读时推送）
+用户发送图片经过微信内容安全检测，违规图片不入消息列表并返回提示
+店长可逻辑删除违规消息，操作写入审计日志
+订单取消或确认收货后 30 天内消息可查看，超期归档
+定制订单熨烫完成后自动进入 QC_PENDING 状态，必须经过质检才能继续流转
+店员可提交质检结果（通过/不通过），必须上传至少 2 张照片
+质检照片自动叠加水印（时间戳 + 操作人 + 订单号），上传后不可修改不可删除
+质检不通过可选择回退目标状态，订单回到对应制作阶段，自动生成系统消息通知用户
+店长可录入物流单号，订单状态变为 SHIPPED，自动生成订单消息通知用户
+用户可查看物流单号，可主动确认收货
+发货后超过 auto_confirm_days 天未确认收货，定时任务自动确认
+确认收货（主动或自动）触发积分入账
+退款工单处理期间暂停自动确认倒计时
+用户消费后积分自动入账（定制确认收货、到店结算、配件支付三个触发点）
+积分入账与订单状态变更是同一事务，不存在积分超发
+生日月消费双倍积分（需配置开启且用户 level >= 2）
+积分过期定时任务每日执行，过期积分自动扣减并生成 EXPIRE 流水
+用户可在结算时使用积分抵扣，抵扣上限为订单金额的 points_deduct_max_ratio
+积分扣减使用 Redis 分布式锁防止并发超扣
+订单取消时已用积分原路退回（已过期积分不退回）
+会员等级根据累计积分自动升级，升级写入审计日志
+56/57
+===== PAGE 57 =====
+等级折扣在积分抵扣和券抵扣之前计算（总价 → 等级折扣 → 积分抵扣 → 券抵扣 → 应付）
+钻石会员生日月自动减免熨烫费
+手动调整积分写入审计日志并触发微信告警
+所有积分参数（赚取率、抵扣率、过期月数、抵扣上限比例）后台可配置，禁止硬编码
+21. 二期预留（不在一期交付范围）
+会员进阶体系、积分商城、充值
+拼团、秒杀、优惠券营销活动
+成品商城分销/达人带货
+供应链多仓库存
+数据大屏（门店实时监控）
+人体红外传感器辅助提示（仅提示，不改变业务状态）
+本文档 v1.3 完整版结束。开发过程中如遇业务规则与本文档冲突，以服务端配置表 + audit_log 为
+准；新增高危操作必须先补 audit_log action 枚举再上线。
+本内容由 Coze AI 生成，请遵循相关法律法规及《人工智能生成合成内容标识办法》使用与传播。
+• 
+• 
+• 
+• 
+• 
+• 
+57/57

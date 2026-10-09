@@ -1,0 +1,6 @@
+# 确保脚本在 Windows 上检出时保持 LF 行尾
+*.sh text eol=lf
+*.bat text eol=crlf
+*.py text eol=lf
+*.ts text eol=lf
+package-lock.json text eol=lf

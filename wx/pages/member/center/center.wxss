@@ -1,0 +1,41 @@
+/* pages/member/center/center.wxss */
+.page { padding-top: 24rpx; }
+
+.hero {
+  background: linear-gradient(135deg, #E86A33, #F2A15B);
+  border-radius: 24rpx;
+  padding: 40rpx 32rpx;
+  color: #FFF;
+  box-shadow: 0 12rpx 32rpx rgba(232, 106, 51, 0.35);
+}
+.hero-row { display: flex; align-items: center; }
+.avatar {
+  width: 96rpx; height: 96rpx;
+  border-radius: 999rpx;
+  background: rgba(255, 255, 255, 0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 44rpx; font-weight: 700;
+}
+.hero-info { margin-left: 24rpx; display: flex; flex-direction: column; }
+.hero-level { font-size: 36rpx; font-weight: 800; }
+.hero-sub { font-size: 24rpx; opacity: 0.9; margin-top: 6rpx; }
+
+.hero-nums { display: flex; margin-top: 40rpx; }
+.hero-num { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.num { font-size: 40rpx; font-weight: 800; }
+.num-label { font-size: 24rpx; opacity: 0.9; margin-top: 6rpx; }
+
+.growth { margin-top: 36rpx; }
+.growth-bar { height: 12rpx; background: rgba(255, 255, 255, 0.25); border-radius: 999rpx; overflow: hidden; }
+.growth-fill { height: 100%; background: #FFD8AC; border-radius: 999rpx; }
+.growth-tip { font-size: 22rpx; opacity: 0.95; margin-top: 12rpx; display: block; }
+
+.menu { padding: 8rpx 28rpx; margin-top: 28rpx; }
+.menu-item {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 30rpx 0;
+  font-size: 30rpx;
+  border-bottom: 2rpx solid #F6F0E6;
+}
+.menu-item:last-child { border-bottom: none; }
+.arrow { color: #C9BFAE; font-size: 36rpx; }

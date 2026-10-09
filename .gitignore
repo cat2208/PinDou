@@ -1,0 +1,21 @@
+# ===== 依赖与构建产物 =====
+node_modules/
+dist/
+
+# ===== 环境变量与密钥（真实凭据禁止入库）=====
+.env
+.env.local
+.env.*.local
+
+# ===== 运行时产物 =====
+uploads/
+*.log
+npm-debug.log*
+
+# ===== 系统文件 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== 微信开发者工具 =====
+wx/project.private.config.json

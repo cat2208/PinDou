@@ -1,0 +1,40 @@
+<!--pages/order/list/list.wxml 订单列表-->
+<view class="page fade-in">
+  <view class="tab-bar">
+    <text wx:for="{{tabs}}" wx:key="*this"
+      class="tab {{activeTab === index ? 'active' : ''}}"
+      bindtap="onTabChange" data-index="{{index}}">{{item}}</text>
+  </view>
+
+  <view class="order-list" wx:if="{{orders.length}}">
+    <view class="card o-card" wx:for="{{orders}}" wx:key="orderNo" bindtap="goDetail" data-id="{{item.id}}">
+      <view class="o-head">
+        <view class="o-head-left">
+          <text class="type-tag type-{{item.type}}">{{item.typeText}}</text>
+          <text class="sub o-no">单号 {{item.orderNo}}</text>
+        </view>
+        <text class="badge {{item.status === 'timing' || item.status === 'pending_settle' ? 'badge-warning' : item.status === 'completed' ? 'badge-success' : item.status === 'paid' || item.status === 'in_production' || item.status === 'shipping' ? 'badge-info' : 'badge-gray'}}">{{item.statusText}}</text>
+      </view>
+      <view class="o-body">
+        <image wx:if="{{item.image && !item.imgError}}" class="o-img" src="{{item.image}}" mode="aspectFill" data-index="{{index}}" binderror="onImgError" />
+        <view wx:else class="o-img o-img-ph {{item.type === 'store' ? 'o-img-store' : ''}}">{{item.type === 'store' ? '🧩' : item.type === 'custom' ? '🎨' : '🛍️'}}</view>
+        <view class="o-info">
+          <text class="o-title">{{item.title}}</text>
+          <text class="sub">{{item.createdAt}}</text>
+        </view>
+        <view class="o-amount">
+          <text class="price">¥{{item.totalPrice}}</text>
+        </view>
+      </view>
+      <view class="o-foot">
+        <text class="btn-outline mini" catchtap="goDetail" data-id="{{item.id}}">查看详情</text>
+      </view>
+    </view>
+  </view>
+
+  <view wx:elif="{{!loading}}" class="empty">
+    <text>暂无订单</text>
+    <button class="btn-outline go-btn" bindtap="goMall">去逛逛</button>
+  </view>
+  <view class="safe-bottom" />
+</view>

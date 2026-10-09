@@ -1,0 +1,6 @@
+/* pages/member/points-log/points-log.wxss */
+.log-item { display: flex; align-items: center; margin-bottom: 16rpx; }
+.log-main { flex: 1; display: flex; flex-direction: column; }
+.log-desc { font-size: 30rpx; }
+.log-change { font-size: 32rpx; font-weight: 700; color: var(--brand); }
+.log-change.out { color: var(--text-sub); }

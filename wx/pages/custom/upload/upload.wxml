@@ -1,0 +1,79 @@
+<!--pages/custom/upload/upload.wxml 来图定制-上传-->
+<view class="page fade-in">
+  <view class="card">
+    <view class="step">STEP 1 · 上传参考图</view>
+    <view wx:if="{{!imagePath}}" class="upload-box" bindtap="onChooseImage">
+      <text class="upload-plus">＋</text>
+      <text class="upload-text">上传图片</text>
+      <text class="upload-sub">相册 / 拍照，支持 jpg、png</text>
+    </view>
+    <view wx:else class="upload-preview">
+      <image class="preview-img" src="{{imagePath}}" mode="aspectFit" />
+      <view class="preview-actions">
+        <text class="btn-outline mini" bindtap="onRemoveImage">重新选择</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="step">STEP 2 · 拼豆规格</view>
+    <view class="form-item">
+      <text class="form-label">豆粒规格</text>
+      <picker class="form-value" mode="selector" range="{{beadSizes}}" value="{{beadSizeIndex}}" bindchange="onBeadSizeChange">
+        <view class="picker">{{beadSizes[beadSizeIndex]}} ▾</view>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="form-label">拼豆板型</text>
+      <picker class="form-value" mode="selector" range="{{boards}}" range-key="label" value="{{boardIndex}}" bindchange="onBoardChange">
+        <view class="picker">{{boards[boardIndex].label}} ▾</view>
+      </picker>
+      <text class="form-tip">{{boards[boardIndex].tip}} · 图纸背景自动透明</text>
+    </view>
+    <view class="form-item" wx:if="{{boards[boardIndex].value === 'CUSTOM'}}">
+      <text class="form-label">自定义网格</text>
+      <view class="form-value custom-grid">
+        <input class="grid-input" type="number" value="{{customW}}" bindinput="onCustomWInput" placeholder="宽" />
+        <text class="grid-x">×</text>
+        <input class="grid-input" type="number" value="{{customH}}" bindinput="onCustomHInput" placeholder="高" />
+        <text class="grid-unit">格</text>
+      </view>
+      <text class="form-tip">8~128 格，向下兼容：小图纸可直接放在更大板子上</text>
+    </view>
+    <view class="form-item">
+      <text class="form-label">用色数量</text>
+      <picker class="form-value" mode="selector" range="{{maxColorsOptions}}" value="{{maxColorsIndex}}" bindchange="onMaxColorsChange">
+        <view class="picker">{{maxColorsOptions[maxColorsIndex]}} 色 ▾</view>
+      </picker>
+    </view>
+    <view class="form-item">
+      <text class="form-label">图纸风格</text>
+      <picker class="form-value" mode="selector" range="{{styleLabels}}" value="{{styleIndex}}" bindchange="onStyleChange">
+        <view class="picker">{{styleLabels[styleIndex]}} ▾</view>
+      </picker>
+    </view>
+    <view class="form-item" style="border:none">
+      <text class="form-label">成品尺寸</text>
+      <picker class="form-value" mode="selector" range="{{sizes}}" value="{{sizeIndex}}" bindchange="onSizeChange">
+        <view class="picker">{{sizes[sizeIndex]}} ▾</view>
+      </picker>
+      <text class="form-tip">图纸生成成功后按实际网格自动计算尺寸</text>
+    </view>
+    <view class="form-item">
+      <text class="form-label">制作数量</text>
+      <view class="form-value qty">
+        <text class="qty-btn" bindtap="changeQty" data-delta="-1">－</text>
+        <text class="qty-num">{{quantity}}</text>
+        <text class="qty-btn" bindtap="changeQty" data-delta="1">＋</text>
+      </view>
+    </view>
+    <view class="form-item column">
+      <text class="form-label">备注需求</text>
+      <textarea class="remark" placeholder="如：加吊坠孔、配色偏好、急件要求等（选填）"
+        value="{{remark}}" bindinput="onRemarkInput" maxlength="200" auto-height />
+    </view>
+  </view>
+
+  <button class="btn-primary next" bindtap="onNext" disabled="{{submitting}}">下一步：生成图纸并报价</button>
+  <view class="safe-bottom" />
+</view>

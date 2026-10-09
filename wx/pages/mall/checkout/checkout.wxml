@@ -1,0 +1,54 @@
+<!--pages/mall/checkout/checkout.wxml 确认订单-->
+<view class="page fade-in">
+  <!-- 收货地址 -->
+  <view class="card addr" bindtap="editAddress">
+    <text wx:if="{{address}}" class="addr-main">{{address.name}}　{{address.phone}}</text>
+    <text wx:if="{{address}}" class="sub addr-detail">{{address.detail}}</text>
+    <text wx:else class="addr-empty">＋ 添加收货地址</text>
+  </view>
+
+  <!-- 商品清单 -->
+  <view class="card" wx:if="{{mode === 'mall'}}">
+    <view class="ck-item" wx:for="{{items}}" wx:key="id">
+      <text class="ck-name">{{item.name}}<text wx:if="{{item.spec}}" class="sub">　{{item.spec}}</text></text>
+      <view class="ck-right">
+        <text class="price">¥{{item.price}}</text>
+        <text class="sub">×{{item.qty}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 定制订单 -->
+  <view class="card" wx:if="{{mode === 'custom'}}">
+    <view class="ck-item">
+      <image class="ck-img" src="{{customOrder.image}}" mode="aspectFit" />
+      <view class="ck-info">
+        <text class="ck-name">来图定制 · {{customOrder.size}}</text>
+        <text class="sub">数量 × {{customOrder.qty}}</text>
+      </view>
+      <text class="price">¥{{customOrder.totalPrice}}</text>
+    </view>
+  </view>
+
+  <!-- 结算明细 -->
+  <view class="card">
+    <view class="ck-row">
+      <text class="sub">运费</text>
+      <text class="sub">{{freight > 0 ? '¥' + freight : '免运费'}}</text>
+    </view>
+    <view class="divider" />
+    <view class="ck-row total">
+      <text>实付金额</text>
+      <text class="price"><text class="price-symbol">¥</text><text class="price-int">{{totalPrice}}</text></text>
+    </view>
+  </view>
+
+  <view class="pay-bar">
+    <view class="pay-total">
+      <text class="sub">合计</text>
+      <text class="price"><text class="price-symbol">¥</text><text class="price-int">{{totalPrice}}</text></text>
+    </view>
+    <button class="btn-primary" bindtap="onSubmit" disabled="{{submitting}}">提交订单</button>
+  </view>
+  <view class="pay-bar-placeholder" />
+</view>

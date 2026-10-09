@@ -1,0 +1,25 @@
+<!--pages/user/profile/profile.wxml 个人中心-->
+<view class="page fade-in" wx:if="{{user}}">
+  <view class="me-card">
+    <view class="me-avatar" bindtap="editProfile">{{user.avatar}}</view>
+    <view class="me-info">
+      <text class="me-name">{{user.nickname}}</text>
+      <text class="me-sub">{{user.memberLevel}} · {{user.phone}}</text>
+    </view>
+    <text class="me-edit" bindtap="editProfile">编辑</text>
+  </view>
+
+  <view class="card menu">
+    <view class="menu-item" bindtap="goMember"><text>会员中心</text><text class="arrow">›</text></view>
+    <view class="menu-item" bindtap="goOrders"><text>我的订单</text><text class="arrow">›</text></view>
+    <view class="menu-item" bindtap="goPoints"><text>积分明细</text><text class="arrow">›</text></view>
+  </view>
+
+  <view class="card menu">
+    <view class="menu-item" bindtap="goStore"><text>扫码开台</text><text class="arrow">›</text></view>
+    <view class="menu-item" bindtap="goGallery"><text>晒图墙</text><text class="arrow">›</text></view>
+    <view class="menu-item" bindtap="goCashier"><text>收银台</text><text class="arrow">›</text></view>
+    <view class="menu-item" bindtap="callService"><text>客服电话</text><text class="arrow">›</text></view>
+  </view>
+  <view class="safe-bottom" />
+</view>

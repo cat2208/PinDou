@@ -1,0 +1,49 @@
+/* pages/custom/confirm/confirm.wxss */
+.step {
+  font-size: 24rpx;
+  color: var(--brand);
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+.order-row {
+  display: flex;
+  align-items: center;
+}
+.between { justify-content: space-between; }
+.order-img {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: var(--radius);
+  background: #FFF0E4;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+.order-info { display: flex; flex-direction: column; }
+.order-name { font-size: 30rpx; font-weight: 600; margin-bottom: 8rpx; }
+.order-no { font-size: 24rpx; color: var(--text-sub); }
+
+.remark {
+  width: 100%;
+  min-height: 100rpx;
+  font-size: 28rpx;
+  background: #FAF5EC;
+  border-radius: var(--radius);
+  padding: 16rpx;
+  box-sizing: border-box;
+}
+
+.pay-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+  z-index: 10;
+}
+.pay-total { display: flex; align-items: baseline; }
+.pay-bar-placeholder { height: 140rpx; }

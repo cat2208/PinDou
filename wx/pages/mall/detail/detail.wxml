@@ -1,0 +1,55 @@
+<!--pages/mall/detail/detail.wxml 商品详情-->
+<view class="page fade-in" wx:if="{{product}}">
+  <swiper class="gallery" indicator-dots autoplay circular>
+    <swiper-item wx:for="{{product.gallery.length ? product.gallery : [product.coverImage]}}" wx:key="index">
+      <image class="gallery-img" src="{{item}}" mode="aspectFill" />
+    </swiper-item>
+  </swiper>
+
+  <view class="card">
+    <view class="p-head">
+      <text class="price"><text class="price-symbol">¥</text><text class="price-int">{{product.price}}</text></text>
+      <text class="badge badge-warning">已售 {{product.sales || 0}}</text>
+    </view>
+    <text class="p-name">{{product.name}}</text>
+    <text class="sub p-cat">分类：{{product.category}}</text>
+  </view>
+
+  <view class="card">
+    <view class="section-t">规格选择</view>
+    <block wx:for="{{product.specs}}" wx:for-item="spec" wx:key="name">
+      <view class="spec-row">
+        <text class="sub">{{spec.name}}</text>
+        <view class="spec-opts">
+          <text wx:for="{{spec.values}}" wx:for-item="val" wx:key="*this"
+            class="spec-chip {{specIndex === index ? 'active' : ''}}"
+            bindtap="onSpecTap" data-index="{{index}}">{{val}}</text>
+        </view>
+      </view>
+    </block>
+    <view class="spec-row">
+      <text class="sub">数量</text>
+      <view class="qty">
+        <text class="qty-btn" bindtap="changeQty" data-delta="-1">－</text>
+        <text class="qty-num">{{qty}}</text>
+        <text class="qty-btn" bindtap="changeQty" data-delta="1">＋</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="section-t">商品详情</view>
+    <text class="p-desc">{{product.desc}}</text>
+  </view>
+
+  <view class="buy-bar">
+    <view class="buy-cart" bindtap="goCart">
+      <text class="cart-icon">🛒</text>
+      <text wx:if="{{cartCount}}" class="cart-badge">{{cartCount}}</text>
+      <text class="sub">购物车</text>
+    </view>
+    <button class="btn-outline add-btn" bindtap="addToCart">加入购物车</button>
+    <button class="btn-primary" bindtap="buyNow">立即购买</button>
+  </view>
+  <view class="buy-bar-placeholder" />
+</view>

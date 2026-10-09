@@ -1,0 +1,27 @@
+/* pages/mall/checkout/checkout.wxss */
+.addr { display: flex; flex-direction: column; }
+.addr-main { font-size: 30rpx; font-weight: 600; }
+.addr-detail { margin-top: 6rpx; }
+.addr-empty { color: var(--brand); }
+
+.ck-item { display: flex; align-items: center; padding: 12rpx 0; }
+.ck-name { flex: 1; font-size: 28rpx; }
+.ck-right { display: flex; align-items: center; }
+.ck-right .sub { margin-left: 16rpx; }
+.ck-img { width: 140rpx; height: 140rpx; border-radius: var(--radius); background: #FFF0E4; margin-right: 20rpx; }
+.ck-info { flex: 1; display: flex; flex-direction: column; }
+
+.ck-row { display: flex; justify-content: space-between; align-items: center; padding: 14rpx 0; }
+.ck-row.total { font-size: 30rpx; font-weight: 700; }
+.link { color: var(--brand); }
+
+.pay-bar {
+  position: fixed; left: 0; right: 0; bottom: 0;
+  background: #fff;
+  padding: 16rpx 24rpx calc(16rpx + env(safe-area-inset-bottom));
+  display: flex; justify-content: space-between; align-items: center;
+  box-shadow: 0 -4rpx 16rpx rgba(0, 0, 0, 0.06);
+  z-index: 10;
+}
+.pay-total { display: flex; align-items: baseline; }
+.pay-bar-placeholder { height: 140rpx; }
