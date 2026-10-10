@@ -23,7 +23,10 @@ Page({
     }
   },
 
-  onShow() { this.fetchOrders() },
+  onShow() {
+    if (this._loadedOnce && Date.now() - (this._lastFetchAt || 0) < 5000) return
+    this.fetchOrders()
+  },
 
   onPullDownRefresh() {
     this.fetchOrders().finally(() => wx.stopPullDownRefresh())
@@ -38,6 +41,8 @@ Page({
     this.setData({ loading: true })
     return request({ url: '/api/orders', data: { status }, silent: true })
       .then((data) => {
+        this._lastFetchAt = Date.now()
+        this._loadedOnce = true
         const list = (data && data.list) || []
         this.setData({ orders: list.map(o => this.decorate(o)) })
       })

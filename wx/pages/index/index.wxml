@@ -42,7 +42,7 @@
     <view class="card product-card" wx:for="{{hotProducts}}" wx:key="id"
       bindtap="goProduct" data-id="{{item.id}}">
       <image class="product-img" src="{{item.coverImage}}" mode="aspectFill"
-        binderror="onProductImgError" data-index="{{index}}" />
+        binderror="onProductImgError" data-index="{{index}}" lazy-load />
       <text class="product-name">{{item.name}}</text>
       <view class="product-foot">
         <text class="price"><text class="price-symbol">¥</text>{{item.priceText || item.price}}</text>

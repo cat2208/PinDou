@@ -91,13 +91,16 @@ Page({
       remainText = '按实际用时计费'
     }
 
-    const fee = this.calcLocalTimingFee(minutes, s)
-    this.setData({
-      elapsed,
-      remainText,
-      remainState,
-      estTimingFee: `¥${fee.toFixed(2)}`
-    })
+    // 金额/剩余时间以分钟级变化为主，秒级只更新计时（reduce 每秒 setData 体积与渲染压力）
+    const patch = { elapsed }
+    if (remainText !== this.data.remainText) patch.remainText = remainText
+    if (remainState !== this.data.remainState) patch.remainState = remainState
+    if (Math.floor(Date.now() / 1000) % 5 === 0) {
+      const fee = this.calcLocalTimingFee(minutes, s)
+      const feeText = `¥${fee.toFixed(2)}`
+      if (feeText !== this.data.estTimingFee) patch.estTimingFee = feeText
+    }
+    this.setData(patch)
   },
 
   /** 与后端 calcTimingFee 一致：套餐内套餐价；超时按小时单价补差价 */

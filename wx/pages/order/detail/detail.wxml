@@ -31,9 +31,9 @@
 
     <!-- 到店DIY：本桌清单 -->
     <view class="divider" wx:if="{{order.items && order.items.length}}" />
-    <view class="line-item" wx:for="{{order.items}}" wx:key="index" wx:if="{{order.items && order.items.length}}">
+    <view class="line-item" wx:for="{{order.items}}" wx:key="name" wx:if="{{order.items && order.items.length}}">
       <text class="line-name">{{item.name}}<text wx:if="{{item.qty > 1}}" class="sub">　×{{item.qty}}</text></text>
-      <text class="line-amt">{{item.amountText || '¥' + Number(item.amount || 0).toFixed(2)}}</text>
+      <text class="line-amt">{{item.amountText ? item.amountText : ''}}</text>
     </view>
 
     <view class="divider" />

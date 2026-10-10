@@ -1,6 +1,6 @@
 // pages/mall/checkout/checkout.js 结算页
 const { request } = require('../../../utils/request')
-const { fen2yuan } = require('../../../utils/util')
+const { fen2yuan, safeDecode } = require('../../../utils/util')
 
 Page({
 data: {
@@ -15,13 +15,13 @@ data: {
   },
 
   onLoad(query) {
-    // 定制订单跳入
+// 定制订单跳入
     if (query.custom === '1') {
       const order = {
-        image: decodeURIComponent(query.image || ''),
+        image: safeDecode(query.image || ''),
         qty: Number(query.qty) || 1,
-        size: decodeURIComponent(query.size || ''),
-        remark: decodeURIComponent(query.remark || ''),
+        size: safeDecode(query.size || ''),
+        remark: safeDecode(query.remark || ''),
         unitPrice: Number(query.unitPrice) || 0,
         totalPrice: Number(query.totalPrice) || 0
       }

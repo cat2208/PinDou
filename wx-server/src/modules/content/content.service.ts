@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Product, Gallery } from '../../entities/content.entity';
 import { User } from '../../entities/user.entity';
 import { Store } from '../../entities/store.entity';
@@ -57,10 +57,17 @@ export class ContentService {
 
   /** GET /api/gallery 晒图墙（审核通过） */
   async gallery() {
-    const rows = await this.galleryRepo.find({ where: { status: 'APPROVED' }, order: { id: 'DESC' } });
+    const rows = await this.galleryRepo.find({ where: { status: 'APPROVED' }, order: { id: 'DESC' }, take: 50 });
+    // 批量取用户，避免逐条 N+1
+    const userIds = [...new Set(rows.map((g) => g.user_id).filter(Boolean))];
+    const userMap = new Map<number, User>();
+    if (userIds.length) {
+      const users = await this.userRepo.find({ where: { id: In(userIds) } });
+      for (const u of users) userMap.set(u.id, u);
+    }
     const list = [];
     for (const g of rows) {
-      const u = g.user_id ? await this.userRepo.findOne({ where: { id: g.user_id } }) : null;
+      const u = userMap.get(g.user_id);
       list.push({
         id: g.id,
         user: u?.nickname || `豆友${(g.user_id || g.id) % 1000}`,

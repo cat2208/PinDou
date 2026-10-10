@@ -11,9 +11,18 @@ const ENV = {
 }
 
 // 决定当前环境：可在开发者工具中通过 编译模式/自定义变量 覆盖
-const envKey = (wx.getStorageSync('env') === 'prod' || __wxConfig.envVersion === 'release')
-  ? 'prod'
-  : 'dev'
+// 注意：__wxConfig 是开发者工具注入的非标准全局，个别基础库/真机环境下可能不存在，
+// 必须防御式探测，否则顶层 ReferenceError 会导致 config 加载失败、整个小程序打不开。
+function detectEnv() {
+  try {
+    const info = wx.getAccountInfoSync()
+    if (info && info.miniProgram && info.miniProgram.envVersion === 'release') return 'prod'
+  } catch (e) { /* 忽略 */ }
+  if (typeof __wxConfig !== 'undefined' && __wxConfig.envVersion === 'release') return 'prod'
+  if (wx.getStorageSync('env') === 'prod') return 'prod'
+  return 'dev'
+}
+const envKey = detectEnv()
 
 module.exports = {
   baseUrl: ENV[envKey] || ENV.dev,

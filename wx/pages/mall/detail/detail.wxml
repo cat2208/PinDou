@@ -1,7 +1,7 @@
 <!--pages/mall/detail/detail.wxml 商品详情-->
 <view class="page fade-in" wx:if="{{product}}">
   <swiper class="gallery" indicator-dots autoplay circular>
-    <swiper-item wx:for="{{product.gallery.length ? product.gallery : [product.coverImage]}}" wx:key="index">
+    <swiper-item wx:for="{{product.gallery && product.gallery.length ? product.gallery : [product.coverImage]}}" wx:key="*this">
       <image class="gallery-img" src="{{item}}" mode="aspectFill" />
     </swiper-item>
   </swiper>

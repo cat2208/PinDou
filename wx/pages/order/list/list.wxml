@@ -16,7 +16,7 @@
         <text class="badge {{item.status === 'timing' || item.status === 'pending_settle' ? 'badge-warning' : item.status === 'completed' ? 'badge-success' : item.status === 'paid' || item.status === 'in_production' || item.status === 'shipping' ? 'badge-info' : 'badge-gray'}}">{{item.statusText}}</text>
       </view>
       <view class="o-body">
-        <image wx:if="{{item.image && !item.imgError}}" class="o-img" src="{{item.image}}" mode="aspectFill" data-index="{{index}}" binderror="onImgError" />
+        <image wx:if="{{item.image && !item.imgError}}" class="o-img" src="{{item.image}}" mode="aspectFill" data-index="{{index}}" binderror="onImgError" lazy-load />
         <view wx:else class="o-img o-img-ph {{item.type === 'store' ? 'o-img-store' : ''}}">{{item.type === 'store' ? '🧩' : item.type === 'custom' ? '🎨' : '🛍️'}}</view>
         <view class="o-info">
           <text class="o-title">{{item.title}}</text>

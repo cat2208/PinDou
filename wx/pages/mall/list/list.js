@@ -27,8 +27,10 @@ Page({
     this.fetchProducts().finally(() => wx.stopPullDownRefresh())
   },
 
-  onShow() {
-    // tab 页每次进入更新（如购物车数量变化后）
+onShow() {
+    // tab 页每次进入更新（如购物车数量变化后）；5s 内来回切换不重复请求，避免卡顿
+    const now = Date.now()
+    if (now - (this._lastFetchAt || 0) < 5000) return
     if (this.data.products.length) this.fetchProducts(true)
   },
 
@@ -36,8 +38,9 @@ Page({
     if (!silent) this.setData({ loading: true })
     const { activeCat, categories } = this.data
     const cat = categories[activeCat]
-    return request({ url: '/api/products', data: { category: cat === '全部' ? '' : cat }, silent: true })
+return request({ url: '/api/products', data: { category: cat === '全部' ? '' : cat }, silent: true })
       .then((data) => {
+        this._lastFetchAt = Date.now()
         this.setData({ products: data && data.list ? data.list : [] })
       })
       .catch(() => {

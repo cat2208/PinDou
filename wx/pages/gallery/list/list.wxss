@@ -11,8 +11,9 @@
   overflow: hidden;
   margin-bottom: 20rpx;
 }
-.gal-cover { height: 240rpx; display: flex; align-items: center; justify-content: center; }
+.gal-cover { height: 240rpx; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .gal-char { font-size: 90rpx; font-weight: 800; color: rgba(255, 255, 255, 0.95); }
+.gal-img { width: 100%; height: 100%; display: block; }
 .gal-info { padding: 16rpx 20rpx 20rpx; }
 .gal-desc {
   font-size: 28rpx;
@@ -34,3 +35,9 @@
   margin-right: 10rpx;
 }
 .gal-like { color: var(--danger); font-size: 24rpx; }
+.gal-empty {
+  padding: 120rpx 0;
+  text-align: center;
+  color: #999;
+  font-size: 28rpx;
+}

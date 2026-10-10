@@ -121,7 +121,7 @@ Page({
             `qty=${quantity}`,
             `size=${encodeURIComponent(`${cm.w}×${cm.h}cm`)}`,
             `gridWidth=${pattern.gridWidth || gridWidth}`,
-            `gridHeight=${pattern.gridHeight || gridWidth}`,
+            `gridHeight=${pattern.gridHeight || gridHeight}`,
             `beadSize=${pattern.beadSize || beadSize}`,
             `totalBeans=${pattern.totalBeans || 0}`,
             `colorCount=${pattern.colorCount || 0}`,

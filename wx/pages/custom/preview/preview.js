@@ -1,6 +1,7 @@
 // pages/custom/preview/preview.js 来图定制-预览报价（拼豆图纸/配额清单）
 const { request } = require('../../../utils/request')
 const { baseUrl } = require('../../../utils/config')
+const { safeDecode } = require('../../../utils/util')
 
 // 尺寸参考价（元/件），图纸生成失败时回退阶梯价
 const SIZE_PRICE = {
@@ -41,25 +42,26 @@ Page({
   },
 
   onLoad(query) {
-    const size = decodeURIComponent(query.size || '25×25cm')
-    const patternId = decodeURIComponent(query.patternId || '')
+    query = query || {}
+    const size = safeDecode(query.size || '25×25cm')
+    const patternId = safeDecode(query.patternId)
     const pattern = {
       patternId,
-      patternUrl: decodeURIComponent(query.patternUrl || ''),
+      patternUrl: safeDecode(query.patternUrl),
       gridWidth: Number(query.gridWidth) || 0,
       gridHeight: Number(query.gridHeight) || 0,
       beadSize: Number(query.beadSize) || 0,
       totalBeans: Number(query.totalBeans) || 0,
       colorCount: Number(query.colorCount) || 0,
-      style: decodeURIComponent(query.style || '')
+      style: safeDecode(query.style)
     }
     this.setData({
-      image: absUrl(decodeURIComponent(query.image || '')),
+      image: absUrl(safeDecode(query.image)),
       patternId,
       pattern,
       qty: Number(query.qty) || 1,
       size,
-      remark: decodeURIComponent(query.remark || ''),
+      remark: safeDecode(query.remark),
       unitPrice: SIZE_PRICE[size] || 39
     })
     if (patternId) {

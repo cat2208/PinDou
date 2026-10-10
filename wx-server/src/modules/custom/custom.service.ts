@@ -287,7 +287,7 @@ const wantAll = !status || status === 'all' || status === '';
       return [...new Set(out)];
     };
 
-const coQb = this.coRepo.createQueryBuilder('c').where('c.user_id = :uid', { uid }).orderBy('c.created_at', 'DESC');
+const coQb = this.coRepo.createQueryBuilder('c').where('c.user_id = :uid', { uid }).orderBy('c.created_at', 'DESC').take(100);
     if (!wantAll) {
       coQb.andWhere('c.status IN (:...sts)', { sts: mapStatus(status) });
     }
@@ -299,23 +299,24 @@ const coQb = this.coRepo.createQueryBuilder('c').where('c.user_id = :uid', { uid
       if (/completed/.test(s)) return ['SETTLED'];
       return [];
     };
-    const soQb = this.soRepo.createQueryBuilder('s').where('s.user_id = :uid', { uid }).orderBy('s.created_at', 'DESC');
+    const soQb = this.soRepo.createQueryBuilder('s').where('s.user_id = :uid', { uid }).orderBy('s.created_at', 'DESC').take(100);
     if (!wantAll) {
       const sts = storeStatusMap(status);
       soQb.andWhere('s.status IN (:...sts)', { sts: sts.length ? sts : ['__NONE__'] });
     }
     const stores = await soQb.getMany();
     // 商城订单（MM）：仅在"全部"tab 返回（一期商城沙箱直接支付，无物流状态流转）
-    const aoQb = this.aoRepo.createQueryBuilder('a').where('a.user_id = :uid', { uid }).orderBy('a.created_at', 'DESC');
+    const aoQb = this.aoRepo.createQueryBuilder('a').where('a.user_id = :uid', { uid }).orderBy('a.created_at', 'DESC').take(100);
     const accessories = wantAll ? await aoQb.getMany() : [];
 
-    const list: any[] = [
+const list: any[] = [
       ...customs.map((o) => ({ ...this.toOrderListItem(o), type: 'custom' })),
       ...stores.map((o) => ({ ...this.toStoreOrderListItem(o), type: 'store' })),
       ...accessories.map((o) => ({ ...this.toAccessoryListItem(o), type: 'mall' })),
     ];
     list.sort((a, b) => (a.createdAt > b.createdAt ? -1 : 1));
-    return { list };
+    // 合并后最多返回最近 50 条，避免历史订单过多导致小程序端渲染卡顿
+    return { list: list.slice(0, 50) };
   }
 
   /** GET /api/orders/:id 订单详情（定制或商城） */
@@ -493,7 +494,12 @@ private toStoreOrderListItem(o: StoreOrder): any {
       title: items.length ? items[0].name : '商城商品',
       image: items.length ? items[0].cover || '' : '',
       qty: items.reduce((s, i) => s + Number(i.qty || 1), items.length || 1) || 1,
-      items: items.map((i: any) => ({ name: i.name, qty: i.qty, amount: Number(i.amount || i.price || 0) })),
+      items: items.map((i: any) => ({
+        name: i.name,
+        qty: i.qty,
+        amount: Number(i.amount || i.price || 0),
+        amountText: `¥${Number(i.amount || i.price || 0).toFixed(2)}`,
+      })),
       createdAt: fmtTime(o.created_at),
       paidAt: o.pay_status === 'PAID' ? fmtTime(o.created_at) : '',
       timeline: [

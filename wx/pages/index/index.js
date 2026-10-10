@@ -63,11 +63,11 @@ goStore() {
     wx.switchTab({ url: '/pages/mall/list/list' })
   },
 
-  // 图片加载失败降级：隐藏该图（不阻断页面）
+// 图片加载失败降级：剔除该图（不阻断页面，避免数组中出现 null 项）
   onBannerError(e) {
     const idx = e.currentTarget.dataset.index
-    const banners = this.data.banners.slice()
-    banners[idx] = null
+    const banners = this.data.banners
+      .filter((b, i) => b && i !== idx)
     this.setData({ banners })
   },
 

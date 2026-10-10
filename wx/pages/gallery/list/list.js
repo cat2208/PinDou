@@ -1,28 +1,39 @@
 // pages/gallery/list/list.js 晒图墙
 const { request } = require('../../../utils/request')
 
-const MOCK_POSTS = [
-  { id: 1, user: '豆豆妈', avatar: '豆', likes: 32, title: '和女儿一起完成的小熊挂件', time: '2026-10-08', color: '#C7A37C', cover: '熊' },
-  { id: 2, user: '手工达人Leo', avatar: 'L', likes: 58, title: '拼了三天的大号鲸鱼', time: '2026-10-07', color: '#7FA8C9', cover: '鲸' },
-  { id: 3, user: '小番茄', avatar: '番', likes: 21, title: '新手第一作冰淇淋杯', time: '2026-10-06', color: '#F2A15B', cover: '冰' },
-  { id: 4, user: '阿哲', avatar: '哲', likes: 45, title: '圣诞节全家福拼豆', time: '2026-10-05', color: '#E86A33', cover: '圣' },
-  { id: 5, user: '甜甜圈', avatar: '甜', likes: 19, title: '猫咪摆件完成啦', time: '2026-10-04', color: '#9A8FB5', cover: '猫' },
-  { id: 6, user: 'Rainbow', avatar: 'R', likes: 37, title: '几何盘子拼出来真好看', time: '2026-10-03', color: '#8FB3A6', cover: '几' }
-]
-
 Page({
   data: { posts: [] },
 
   onShow() {
+    const now = Date.now()
+    const needsFresh = wx.getStorageSync('galleryNeedsRefresh')
+    // tab 页切换节流：距上次成功拉取不足 5s 不重复请求，避免来回切换卡顿
+    if (!needsFresh && now - (this._lastFetchAt || 0) < 5000) return
+    if (needsFresh) wx.removeStorageSync('galleryNeedsRefresh')
+    this._lastFetchAt = now
     this.fetchPosts()
-    const mine = wx.getStorageSync('myGalleryPosts') || []
-    if (mine.length) this.setData({ posts: [...mine, ...MOCK_POSTS] })
   },
 
   fetchPosts() {
     request({ url: '/api/gallery', silent: true })
-      .then((data) => { if (data && data.list) this.setData({ posts: data.list }) })
+      .then((data) => {
+        if (data && data.list) this.setData({ posts: data.list.map((p) => this.decorate(p)) })
+        this._lastFetchAt = Date.now()
+      })
       .catch(() => {})
+  },
+
+  /** 后端字段装饰：cover 为图片 URL 时用图片渲染，本地占位用字符兜底 */
+  decorate(p) {
+    const cover = p.cover || (Array.isArray(p.images) && p.images[0]) || ''
+    const isImg = !!cover && /^https?:\/\//.test(cover)
+      ? true
+      : !!cover && cover.indexOf('/') === 0
+    return {
+      ...p,
+      isImg: !!isImg,
+      cover
+    }
   },
 
   goPublish() { wx.navigateTo({ url: '/pages/gallery/publish/publish' }) },
@@ -34,6 +45,16 @@ Page({
   },
 
   preview(e) {
-    wx.previewImage({ urls: this.data.posts.map(() => ''), current: '' })
+    const post = this.data.posts[e.currentTarget.dataset.index]
+    const urls = (post && post.images && post.images.length ? post.images : []).map((u) => {
+      // 后端返回的相对路径补全
+      if (typeof u === 'string' && u.indexOf('/') === 0) return require('../../../utils/config').baseUrl + u
+      return u
+    })
+    if (!urls.length) {
+      wx.showToast({ title: '该作品暂无图片', icon: 'none' })
+      return
+    }
+    wx.previewImage({ urls, current: urls[0] })
   }
 })

@@ -5,10 +5,15 @@
     <text class="gal-post" bindtap="goPublish">+ 晒图</text>
   </view>
 
-  <view class="gal-grid">
+  <view class="gal-empty" wx:if="{{!posts.length}}">
+    <text>暂无作品，快来晒图</text>
+  </view>
+
+  <view class="gal-grid" wx:if="{{posts.length}}">
     <view class="gal-item" wx:for="{{posts}}" wx:key="id">
-      <view class="gal-cover" style="background: {{item.color}}" bindtap="preview">
-        <text class="gal-char">{{item.cover}}</text>
+      <view class="gal-cover" style="background: {{item.color || '#F3E7D6'}}" bindtap="preview" data-index="{{index}}">
+        <image wx:if="{{item.isImg}}" class="gal-img" src="{{item.cover}}" mode="aspectFill" lazy-load />
+        <text wx:else class="gal-char">{{item.cover}}</text>
       </view>
       <view class="gal-info">
         <text class="gal-desc">{{item.title}}</text>

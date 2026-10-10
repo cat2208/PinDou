@@ -9,7 +9,7 @@
   <view class="grid-2 product-grid" wx:if="{{products.length}}">
     <view class="card p-card" wx:for="{{products}}" wx:key="id"
       bindtap="goDetail" data-id="{{item.id}}">
-      <image class="p-img" src="{{item.coverImage}}" mode="aspectFill" />
+      <image class="p-img" src="{{item.coverImage}}" mode="aspectFill" lazy-load />
       <view class="p-info">
         <text class="p-name">{{item.name}}</text>
         <view class="p-foot">

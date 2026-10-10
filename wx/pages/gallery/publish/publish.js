@@ -53,7 +53,8 @@ Page({
     wx.hideLoading()
     const post = { id: Date.now(), user: '我的作品', avatar: '我', likes: 0, title: title || '我的新作品', color: '#E86A33', cover: title.charAt(0) || '作' }
     const mine = wx.getStorageSync('myGalleryPosts') || []
-    wx.setStorageSync('myGalleryPosts', [post, ...mine])
+wx.setStorageSync('myGalleryPosts', [post, ...mine])
+    wx.setStorageSync('galleryNeedsRefresh', true)
     wx.showModal({ title: '发布成功', content: '感谢分享你的作品！', showCancel: false, success: () => wx.navigateBack() })
   }
 })

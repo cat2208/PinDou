@@ -14,11 +14,18 @@ const MOCK_MEMBER = {
 Page({
   data: { member: null },
 
-  onShow() { this.fetchMember() },
+onShow() {
+    if (this._loadedOnce && Date.now() - (this._lastFetchAt || 0) < 5000) return
+    this.fetchMember()
+  },
 
   fetchMember() {
     request({ url: '/api/member/info', silent: true })
-      .then((data) => this.setData({ member: data || MOCK_MEMBER }))
+      .then((data) => {
+        this._lastFetchAt = Date.now()
+        this._loadedOnce = true
+        this.setData({ member: data || MOCK_MEMBER })
+      })
       .catch(() => this.setData({ member: MOCK_MEMBER }))
   },
 

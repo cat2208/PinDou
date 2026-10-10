@@ -1,6 +1,7 @@
 // pages/custom/confirm/confirm.js 来图定制-确认下单（含拼豆图纸参数）
 const { request } = require('../../../utils/request')
 const { baseUrl } = require('../../../utils/config')
+const { safeDecode } = require('../../../utils/util')
 
 // 相对图片路径补全为可加载地址
 function absUrl(p) {
@@ -20,23 +21,24 @@ Page({
   },
 
   onLoad(query) {
+    query = query || {}
     // 拼豆图纸参数（无 patternId 时为普通定制）
-    const patternId = decodeURIComponent(query.patternId || '')
+    const patternId = safeDecode(query.patternId)
     const pattern = {
       patternId,
-      patternUrl: decodeURIComponent(query.patternUrl || ''),
+      patternUrl: safeDecode(query.patternUrl),
       gridWidth: Number(query.gridWidth) || 0,
       gridHeight: Number(query.gridHeight) || 0,
       beadSize: Number(query.beadSize) || 0,
       totalBeans: Number(query.totalBeans) || 0,
       colorCount: Number(query.colorCount) || 0,
-      style: decodeURIComponent(query.style || '')
+      style: safeDecode(query.style)
     }
     const order = {
-      image: absUrl(decodeURIComponent(query.image || '')),
+      image: absUrl(safeDecode(query.image)),
       qty: Number(query.qty) || 1,
-      size: decodeURIComponent(query.size || ''),
-      remark: decodeURIComponent(query.remark || ''),
+      size: safeDecode(query.size),
+      remark: safeDecode(query.remark),
       unitPrice: Number(query.unitPrice) || 0,
       totalPrice: Number(query.totalPrice) || 0,
       deliveryDay: Number(query.deliveryDay) || 3,
