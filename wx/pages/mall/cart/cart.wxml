@@ -7,7 +7,6 @@
       </view>
       <view class="c-info">
         <text class="c-name">{{item.name}}</text>
-        <text class="c-spec" wx:if="{{item.spec}}">{{item.spec}}</text>
         <view class="c-foot">
           <text class="price"><text class="price-symbol">¥</text>{{item.price}}</text>
           <view class="qty">

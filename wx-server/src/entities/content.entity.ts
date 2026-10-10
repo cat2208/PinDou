@@ -20,6 +20,10 @@ export class Product {
   @Column({ type: 'enum', enum: ['FINISHED', 'MATERIAL', 'ACCESSORY'] })
   category: 'FINISHED' | 'MATERIAL' | 'ACCESSORY';
 
+  /** 业务品类（中文，如 挂件/摆件/杯垫/材料包/钥匙扣/冰箱贴），商城展示与按类运费使用 */
+  @Column({ type: 'varchar', length: 32, default: '其他' })
+  subcategory: string;
+
   @Column({ length: 128 })
   title: string;
 

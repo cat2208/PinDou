@@ -16,19 +16,9 @@
   </view>
 
   <view class="card">
-    <view class="section-t">规格选择</view>
-    <block wx:for="{{product.specs}}" wx:for-item="spec" wx:key="name">
-      <view class="spec-row">
-        <text class="sub">{{spec.name}}</text>
-        <view class="spec-opts">
-          <text wx:for="{{spec.values}}" wx:for-item="val" wx:key="*this"
-            class="spec-chip {{specIndex === index ? 'active' : ''}}"
-            bindtap="onSpecTap" data-index="{{index}}">{{val}}</text>
-        </view>
-      </view>
-    </block>
+    <view class="section-t">数量</view>
     <view class="spec-row">
-      <text class="sub">数量</text>
+      <text class="sub">购买数量</text>
       <view class="qty">
         <text class="qty-btn" bindtap="changeQty" data-delta="-1">－</text>
         <text class="qty-num">{{qty}}</text>

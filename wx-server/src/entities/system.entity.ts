@@ -212,6 +212,9 @@ export class AccessoryOrder {
   total_price: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  price_shipping: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   points_deduct: string;
 
   @Column({ type: 'int', default: 0 })

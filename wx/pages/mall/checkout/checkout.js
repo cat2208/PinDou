@@ -3,19 +3,24 @@ const { request } = require('../../../utils/request')
 const { fen2yuan, safeDecode } = require('../../../utils/util')
 
 Page({
-data: {
+  data: {
     items: [],
     // 购物方式：mall 商城 / custom 定制
     mode: 'mall',
     customOrder: null,
     address: null,
+    // 运费配置：按商品业务品类定价（后端 /api/config/public 下发）
+    shipMap: {},
+    freeShippingThreshold: 0,
+    fallbackFee: 0,
     freight: 0,
+    subtotal: 0,
     totalPrice: 0,
     submitting: false
   },
 
   onLoad(query) {
-// 定制订单跳入
+    // 定制订单跳入
     if (query.custom === '1') {
       const order = {
         image: safeDecode(query.image || ''),
@@ -30,8 +35,22 @@ data: {
     }
     const items = wx.getStorageSync('checkoutItems') || []
     this.setData({ items })
-    this.calcTotal()
+    this.fetchShipConfig()
     this.fetchAddress()
+  },
+
+  // 拉取运费配置（含按品类运费表）
+  fetchShipConfig() {
+    request({ url: '/api/config/public', silent: true })
+      .then((cfg) => {
+        if (!cfg) return
+        this.setData({
+          shipMap: cfg.shippingByCategory || {},
+          freeShippingThreshold: Number(cfg.freeShippingThreshold) || 0,
+          fallbackFee: Number(cfg.shippingFee) || 0
+        }, () => this.calcTotal())
+      })
+      .catch(() => this.calcTotal())
   },
 
   fetchAddress() {
@@ -45,11 +64,17 @@ data: {
       })
   },
 
-calcTotal() {
-    const { items, freight } = this.data
-    const sub = items.reduce((s, i) => s + i.price * i.qty, 0)
-    const totalPrice = Math.max(0, sub) + freight
-    this.setData({ totalPrice: +totalPrice.toFixed(2) })
+  // 运费与后端同口径：按订单商品业务品类取最高档运费；订单金额达到免运费门槛则包邮
+  calcTotal() {
+    const { items, shipMap, freeShippingThreshold, fallbackFee } = this.data
+    const subtotal = +items.reduce((s, i) => s + i.price * i.qty, 0).toFixed(2)
+    let freight = 0
+    if (!(freeShippingThreshold > 0 && subtotal >= freeShippingThreshold)) {
+      const fees = items.map(i => Number(shipMap[i.category] ?? fallbackFee) || 0)
+      freight = fees.length ? Math.max(...fees) : 0
+    }
+    const totalPrice = +((subtotal + freight).toFixed(2))
+    this.setData({ subtotal, freight, totalPrice })
   },
 
   onShow() {},
@@ -71,7 +96,7 @@ calcTotal() {
       method: 'POST',
       data: {
         mode,
-        items: items.map(i => ({ productId: i.id, qty: i.qty, spec: i.spec })),
+        items: items.map(i => ({ productId: i.id, qty: i.qty })),
         amountFen: Math.round(totalPrice * 100)
       },
       silent: true

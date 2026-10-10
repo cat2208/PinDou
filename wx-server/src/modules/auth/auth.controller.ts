@@ -46,6 +46,9 @@ export class AuthController {
             ironGlitterMax: Number(p.iron_glitter_max),
             shippingFee: Number(p.shipping_fee),
             freeShippingThreshold: Number(p.free_shipping_threshold),
+            shippingByCategory: p.shipping_by_category && typeof p.shipping_by_category === 'object'
+              ? p.shipping_by_category
+              : {},
             depositRatio: Number(p.deposit_ratio),
             pointsPerYuan: p.points_per_yuan,
             pointsToYuanRate: p.points_to_yuan_rate,

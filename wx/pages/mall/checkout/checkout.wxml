@@ -10,7 +10,7 @@
   <!-- 商品清单 -->
   <view class="card" wx:if="{{mode === 'mall'}}">
     <view class="ck-item" wx:for="{{items}}" wx:key="id">
-      <text class="ck-name">{{item.name}}<text wx:if="{{item.spec}}" class="sub">　{{item.spec}}</text></text>
+      <text class="ck-name">{{item.name}}</text>
       <view class="ck-right">
         <text class="price">¥{{item.price}}</text>
         <text class="sub">×{{item.qty}}</text>
@@ -33,7 +33,11 @@
   <!-- 结算明细 -->
   <view class="card">
     <view class="ck-row">
-      <text class="sub">运费</text>
+      <text class="sub">商品小计</text>
+      <text class="sub">¥{{subtotal}}</text>
+    </view>
+    <view class="ck-row">
+      <text class="sub">运费{{freight > 0 ? '（按品类计价）' : ''}}</text>
       <text class="sub">{{freight > 0 ? '¥' + freight : '免运费'}}</text>
     </view>
     <view class="divider" />

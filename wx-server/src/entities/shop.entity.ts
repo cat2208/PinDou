@@ -47,6 +47,10 @@ export class PricingConfig {
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 6.0 })
   shipping_fee: string;
 
+  /** 分类运费表（业务品类 → 运费元），如 {"钥匙扣":3,"冰箱贴":3,"挂件":5}；空对象时回退 shipping_fee */
+  @Column({ type: 'json', nullable: true })
+  shipping_by_category: Record<string, number>;
+
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 60.0 })
   free_shipping_threshold: string;
 

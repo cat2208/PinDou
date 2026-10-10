@@ -302,6 +302,9 @@ export class OpsService {
       accessoryNoHoleDouble: Number(row.accessory_no_hole_double),
       shippingFee: Number(row.shipping_fee),
       freeShippingThreshold: Number(row.free_shipping_threshold),
+      shippingByCategory: row.shipping_by_category && typeof row.shipping_by_category === 'object'
+        ? row.shipping_by_category
+        : {},
       cancelFreeHours: row.cancel_free_hours,
       depositRatio: Number(row.deposit_ratio),
       inventoryDeductStrategy: row.inventory_deduct_strategy,
@@ -333,6 +336,9 @@ export class OpsService {
     row.accessory_no_hole_double = dec(body.accessoryNoHoleDouble, row.accessory_no_hole_double);
     row.shipping_fee = dec(body.shippingFee, row.shipping_fee);
     row.free_shipping_threshold = dec(body.freeShippingThreshold, row.free_shipping_threshold);
+    if (body.shippingByCategory !== undefined && body.shippingByCategory !== null) {
+      row.shipping_by_category = body.shippingByCategory;
+    }
     row.cancel_free_hours = int(body.cancelFreeHours, row.cancel_free_hours);
     row.deposit_ratio = dec(body.depositRatio, row.deposit_ratio);
     if (body.inventoryDeductStrategy !== undefined) row.inventory_deduct_strategy = body.inventoryDeductStrategy;

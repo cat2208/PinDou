@@ -5,15 +5,15 @@ const { request } = require('../../../utils/request')
 const MOCK_PRODUCTS = [
   { id: 1, name: '小熊拼豆挂件', category: '挂件', price: 19.9, priceText: '19.9', coverImage: '', sales: 128 },
   { id: 2, name: '皮卡丘拼豆摆件', category: '摆件', price: 29.9, priceText: '29.9', coverImage: '', sales: 96 },
-  { id: 3, name: '爱心钥匙扣', category: '挂件', price: 12.9, priceText: '12.9', coverImage: '', sales: 210 },
-  { id: 4, name: '海绵宝宝相框', category: '家居', price: 45, priceText: '45', coverImage: '', sales: 64 },
-  { id: 5, name: '马里奥拼豆套装', category: '套装', price: 59, priceText: '59', coverImage: '', sales: 130 },
-  { id: 6, name: '迷你杯垫四件套', category: '家居', price: 25.9, priceText: '25.9', coverImage: '', sales: 88 }
+  { id: 3, name: '爱心钥匙扣', category: '钥匙扣', price: 12.9, priceText: '12.9', coverImage: '', sales: 210 },
+  { id: 4, name: '海绵宝宝相框', category: '摆件', price: 45, priceText: '45', coverImage: '', sales: 64 },
+  { id: 5, name: '马里奥拼豆套装', category: '材料包', price: 59, priceText: '59', coverImage: '', sales: 130 },
+  { id: 6, name: '迷你杯垫四件套', category: '杯垫', price: 25.9, priceText: '25.9', coverImage: '', sales: 88 }
 ]
 
 Page({
   data: {
-    categories: ['全部', '挂件', '摆件', '家居', '套装'],
+    categories: ['全部', '挂件', '摆件', '杯垫', '材料包', '钥匙扣', '冰箱贴'],
     activeCat: 0,
     products: [],
     loading: true
