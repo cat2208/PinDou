@@ -12,11 +12,11 @@ export class AuthController {
     @InjectRepository(PricingConfig) private readonly pricingRepo: Repository<PricingConfig>,
   ) {}
 
-  /** 小程序登录：POST /api/user/login { code } -> { token, userInfo } */
+  /** 小程序登录：POST /api/user/login { code, mockId? } -> { token, userInfo } */
   @Public()
   @Post('user/login')
-  wxLogin(@Body() body: { code?: string }) {
-    return this.auth.wxLogin(body?.code || '');
+  wxLogin(@Body() body: { code?: string; mockId?: number | string }) {
+    return this.auth.wxLogin(body?.code || '', body?.mockId);
   }
 
   /** 店员端登录：POST /api/staff/login { username, password } */

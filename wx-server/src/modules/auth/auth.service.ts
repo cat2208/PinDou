@@ -26,14 +26,17 @@ export class AuthService {
     private readonly cfg: ConfigService,
   ) {}
 
-  /** 微信小程序登录：mock 模式直接使用固定 openid，生产模式待接入 code2session */
-  async wxLogin(code: string): Promise<LoginResult> {
+  /** 微信小程序登录：mock 模式使用稳定 openid（不随 code 漂移），生产模式待接入 code2session */
+  async wxLogin(code: string, mockId?: number | string): Promise<LoginResult> {
     const mock = this.cfg.get<string>('WX_MOCK_LOGIN', 'true') === 'true';
     let openid: string;
     if (mock) {
-      openid = 'mock-openid-' + (code ? this.hashCode(code) % 1000 : 1);
-      openid = openid.padEnd(15, '0'); // mock-openid-000 ~ mock-openid-999
-      if (openid === 'mock-openid-000') openid = 'mock-openid-001';
+      // mock 模式下 wx.login 的 code 每次都会变化，若用 code 生成 openid 会导致同一用户每次登录
+      // 都注册成新用户，从而无权操作自己此前的订单。这里固定 openid：
+      //   未传 mockId -> mock-openid-001（同一设备始终同一身份）
+      //   传了 mockId -> mock-openid-<id>（便于本地模拟多用户）
+      const id = String(mockId ?? '').replace(/[^0-9a-zA-Z_-]/g, '') || '001';
+      openid = 'mock-openid-' + id;
     } else {
       // 生产：调用微信 jscode2session（需配置 WX_APPID / WX_SECRET）
       openid = await this.exchangeCode(code);
@@ -104,11 +107,5 @@ export class AuthService {
       birthday: u.birthday,
       createdAt: u.created_at,
     };
-  }
-
-  private hashCode(s: string): number {
-    let h = 0;
-    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-    return Math.abs(h);
   }
 }
