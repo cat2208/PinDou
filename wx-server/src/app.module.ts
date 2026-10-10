@@ -10,6 +10,7 @@ import { join } from 'path';
 import { RedisModule } from './common/redis.module';
 import { JwtAuthGuard, RolesGuard } from './common/auth.guard';
 import { TransformInterceptor } from './common/transform.interceptor';
+import { AbsUrlInterceptor } from './common/abs-url.interceptor';
 import { AllExceptionsFilter } from './common/exception.filter';
 import { User, MemberLevelConfig, PointLog } from './entities/user.entity';
 import { Store, Staff, Seat, Package, StaffShift } from './entities/store.entity';
@@ -103,6 +104,10 @@ import { SeedService } from './seed/seed.service';
     {
       provide: APP_INTERCEPTOR,
       useClass: TransformInterceptor,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AbsUrlInterceptor,
     },
     {
       provide: APP_FILTER,

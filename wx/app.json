@@ -56,9 +56,6 @@
   "permission": {
     "scope.userLocation": {
       "desc": "用于展示就近门店与到店导航"
-    },
-    "scope.writePhotosAlbum": {
-      "desc": "用于保存拼豆图纸到相册"
     }
   },
   "style": "v2",
